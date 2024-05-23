@@ -1,0 +1,25 @@
+{
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cloudinary": "^1.37.1",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.1.4",
+    "express": "^4.18.2",
+    "express-fileupload": "^1.4.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.2.3",
+    "nodemailer": "^6.9.13"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "name": "shoe-backend",
+  "version": "1.0.0",
+  "description": "APi for shoe store",
+  "main": "server.js",
+  "author": "Mohit Mehra",
+  "license": "ISC",
+  "type": "module"
+}
