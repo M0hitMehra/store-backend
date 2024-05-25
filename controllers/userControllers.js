@@ -39,34 +39,28 @@ export const createUser = catchAsyncError(async (req, res, next) => {
   sendToken(res, user, 201, "Opt Sent please verify your account");
 });
 
-
 export const verify = catchAsyncError(async (req, res, next) => {
-    const otp = Number(req.body.otp);
-  
-    const user = await User.findById(req.user._id);
-     if (user.otp !== otp || user.otp_expiry < Date.now())
-      return next(new ErrorHandler("Invalid otp", 400));
-  
-    user.verified = true;
-    user.otp = null;
-    user.otp_expiry = null;
-  
-    await user.save();
-  
-    sendToken(res, user, 200, "Account verified successfully");
-  });
+  const otp = Number(req.body.otp);
+
+  const user = await User.findById(req.user._id);
+  if (user.otp !== otp || user.otp_expiry < Date.now())
+    return next(new ErrorHandler("Invalid otp", 400));
+
+  user.verified = true;
+  user.otp = null;
+  user.otp_expiry = null;
+
+  await user.save();
+
+  sendToken(res, user, 200, "Account verified successfully");
+});
 
 // get a user
 export const getUser = catchAsyncError(async (req, res, next) => {
-  const user = await User.findOne(req.body);
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
-  }
+  const _id = req.user._id;
+  const user = await User.findById(_id);
 
-  res.status(200).json({
-    success: true,
-    user,
-  });
+  sendToken(res, user, 200, `Welcome back ${user.name}`);
 });
 
 // login user
