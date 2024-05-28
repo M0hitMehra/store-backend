@@ -60,7 +60,7 @@ export const getUser = catchAsyncError(async (req, res, next) => {
   const _id = req.user._id;
   const user = await User.findById(_id);
 
-  sendToken(res, user, 200, `Welcome back ${user.name}`);
+  sendToken(res, user, 200, `Welcome back ${user.firstName}`);
 });
 
 // login user
