@@ -85,6 +85,8 @@ export const login = catchAsyncError(async (req, res, next) => {
 export const logout = catchAsyncError(async (req, res, next) => {
   const options = {
     httpOnly: true,
+    secure: true,
+    sameSite: "none",
     expires: new Date(Date.now()),
   };
 
