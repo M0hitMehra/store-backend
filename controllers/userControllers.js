@@ -89,7 +89,7 @@ export const logout = catchAsyncError(async (req, res, next) => {
   };
 
   res.status(200).cookie("token", null, options).json({
-    success: false,
+    success: true,
     message: "Logged out successfully",
   });
 });
