@@ -100,7 +100,7 @@ export const logout = catchAsyncError(async (req, res, next) => {
 // add to whishlist
 
 export const addToWishlist = catchAsyncError(async (req, res, next) => {
-  const { productId } = req.body;
+  const { productId } = req.params;
   const userId = req.user._id;
 
   const user = await User.findById(userId);
@@ -129,7 +129,7 @@ export const addToWishlist = catchAsyncError(async (req, res, next) => {
 
 // Remove from Wishlist
 export const removeFromWishlist = catchAsyncError(async (req, res, next) => {
-  const { productId } = req.body;
+  const { productId } = req.params;
   const userId = req.user._id;
 
   const user = await User.findById(userId);

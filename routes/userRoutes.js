@@ -26,7 +26,7 @@ router.route("/user").get(isAuthenticated, getUser);
 
 router.route("/wishlist/:productId").post(isAuthenticated, addToWishlist);
 
-router.route("/wishlist/remove").post(isAuthenticated, removeFromWishlist);
+router.route("/wishlist/remove/:productId").post(isAuthenticated, removeFromWishlist);
 
 router.route("/wishlist").get(isAuthenticated, getWishlist);
 
