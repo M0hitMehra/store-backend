@@ -1,4 +1,5 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
+import { Product } from "../models/Product.js";
 import { User } from "../models/User.js";
 import ErrorHandler from "../utils/errorHandlers.js";
 import { sendMail } from "../utils/sendEmail.js";
@@ -93,5 +94,75 @@ export const logout = catchAsyncError(async (req, res, next) => {
   res.status(200).cookie("token", null, options).json({
     success: true,
     message: "Logged out successfully",
+  });
+});
+
+// add to whishlist
+
+export const addToWishlist = catchAsyncError(async (req, res, next) => {
+  const { productId } = req.body;
+  const userId = req.user._id;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    return next(new ErrorHandler("Product not found", 404));
+  }
+
+  if (user.wishlist.includes(productId)) {
+    return next(new ErrorHandler("Product already in wishlist", 400));
+  }
+
+  user.wishlist.push(productId);
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Product added to wishlist",
+    wishlist: user.wishlist,
+  });
+});
+
+// Remove from Wishlist
+export const removeFromWishlist = catchAsyncError(async (req, res, next) => {
+  const { productId } = req.body;
+  const userId = req.user._id;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  const productIndex = user.wishlist.indexOf(productId);
+  if (productIndex === -1) {
+    return next(new ErrorHandler("Product not found in wishlist", 404));
+  }
+
+  user.wishlist.splice(productIndex, 1);
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Product removed from wishlist",
+    wishlist: user.wishlist,
+  });
+});
+
+// Get all Wishlist Products
+export const getWishlist = catchAsyncError(async (req, res, next) => {
+  const userId = req.user._id;
+
+  const user = await User.findById(userId).populate("wishlist");
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    wishlist: user.wishlist,
   });
 });
