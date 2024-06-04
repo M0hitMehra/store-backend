@@ -30,6 +30,12 @@ const userSchema = mongoose.Schema(
       public_id: String,
       url: String,
     },
+    phone: {
+      type: String,
+    },
+    address: {
+      type: String,
+    },
     wishlist: [
       {
         type: mongoose.Schema.Types.ObjectId,
