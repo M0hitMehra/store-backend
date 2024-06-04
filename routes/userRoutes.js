@@ -9,6 +9,7 @@ import {
   login,
   logout,
   removeFromWishlist,
+  updateProfile,
   verify,
 } from "../controllers/userControllers.js";
 
@@ -29,6 +30,8 @@ router.route("/wishlist/:productId").post(isAuthenticated, addToWishlist);
 router.route("/wishlist/remove/:productId").post(isAuthenticated, removeFromWishlist);
 
 router.route("/wishlist").get(isAuthenticated, getWishlist);
+
+router.route("/user/update").post(isAuthenticated, updateProfile);
 
 
 export default router;
