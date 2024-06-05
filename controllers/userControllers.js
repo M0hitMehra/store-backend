@@ -129,6 +129,33 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
   res.status(200).json({ success: true, user: updateUser });
 });
 
+// update profile image
+export const updateProfileImage = catchAsyncError(async (req, res, next) => {
+  const { image } = req.body;
+
+  if (!image) {
+    return next(new ErrorHandler("Image not found", 404));
+  }
+
+  const userId = req.user._id;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  const media = await mediaUpload(image);
+  const avatar = {
+    public_id: media.public_id,
+    url: media.secure_url,
+  };
+  user.avatar = avatar;
+
+  await user.save();
+
+  res.status(200).json({ success: true, user });
+});
+
 // add to whishlist
 
 export const addToWishlist = catchAsyncError(async (req, res, next) => {
