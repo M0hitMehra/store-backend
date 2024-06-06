@@ -3,6 +3,7 @@ import errorMiddleWare from "./middlewares/error.js";
 import express from "express";
 export const app = express();
 import cors from "cors";
+import bodyParser from 'body-parser';
 
 app.use(express.json());
 app.use(cookieParser());
