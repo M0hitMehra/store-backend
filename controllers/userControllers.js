@@ -2,8 +2,8 @@ import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { Product } from "../models/Product.js";
 import { User } from "../models/User.js";
 import ErrorHandler from "../utils/errorHandlers.js";
-import mediaUpload from "../utils/mediaUpload.js";
-import { sendMail } from "../utils/sendEmail.js";
+import { mediaUpload } from "../utils/mediaUpload.js";
+ import { sendMail } from "../utils/sendEmail.js";
 import { sendToken } from "../utils/sendToken.js";
 
 // Create a new user

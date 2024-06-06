@@ -12,7 +12,7 @@ const options = {
   resource_type: "auto",
 };
 
-export default mediaUpload = async (media) => {
+export const mediaUpload = async (media) => {
   try {
     const cloudinary_res = await cloudinary.uploader.upload(media, {
       folder: "/shoes",
