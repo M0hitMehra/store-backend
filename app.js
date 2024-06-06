@@ -3,12 +3,14 @@ import errorMiddleWare from "./middlewares/error.js";
 import express from "express";
 export const app = express();
 import cors from "cors";
-import bodyParser from 'body-parser';
+import bodyParser from "body-parser";
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(bodyParser.json({ limit: "10mb" })); // Adjust the limit as needed
-app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
+app.use(bodyParser.json({limit: '50mb', extended: true}));
+app.use(bodyParser.urlencoded({limit: "50mb", extended: true, parameterLimit:50000}));
+app.use(bodyParser.text({ limit: '200mb' }));
+
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
