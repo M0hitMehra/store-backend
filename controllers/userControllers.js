@@ -3,7 +3,7 @@ import { Product } from "../models/Product.js";
 import { User } from "../models/User.js";
 import ErrorHandler from "../utils/errorHandlers.js";
 import { mediaUpload } from "../utils/mediaUpload.js";
- import { sendMail } from "../utils/sendEmail.js";
+import { sendMail } from "../utils/sendEmail.js";
 import { sendToken } from "../utils/sendToken.js";
 
 // Create a new user
@@ -99,11 +99,15 @@ export const logout = catchAsyncError(async (req, res, next) => {
 });
 
 // update profile
-
 export const updateProfile = catchAsyncError(async (req, res, next) => {
-  const { firstName, lastName, email, password, image } = req.body;
+  const { firstName, lastName, address, phone } = req.body;
 
-  const data = { firstName, lastName, email, password };
+  const data = {};
+  if (firstName) data.firstName = firstName;
+  if (lastName) data.lastName = lastName;
+  if (address) data.address = address;
+  if (phone) data.phone = phone;
+
   const userId = req.user._id;
 
   const user = await User.findById(userId);
@@ -111,22 +115,13 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("User not found", 404));
   }
 
-  if (image) {
-    const media = await mediaUpload(image);
-    const avatar = {
-      public_id: media.public_id,
-      url: media.secure_url,
-    };
-    data.avatar = avatar;
-  }
-
-  const updateUser = await User.findByIdAndUpdate(req.user._id, data, {
+  const updatedUser = await User.findByIdAndUpdate(userId, data, {
     new: true,
     runValidators: true,
     useFindAndModify: false,
   });
 
-  res.status(200).json({ success: true, user: updateUser });
+  res.status(200).json({ success: true, user: updatedUser });
 });
 
 // update profile image
