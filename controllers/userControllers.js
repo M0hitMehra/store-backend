@@ -5,7 +5,7 @@ import ErrorHandler from "../utils/errorHandlers.js";
 import { mediaUpload } from "../utils/mediaUpload.js";
 import { sendMail } from "../utils/sendEmail.js";
 import { sendToken } from "../utils/sendToken.js";
-
+import crypto from "crypto";
 // Create a new user
 export const createUser = catchAsyncError(async (req, res, next) => {
   const { firstName, lastName, email, password } = req.body;
@@ -149,6 +149,55 @@ export const updateProfileImage = catchAsyncError(async (req, res, next) => {
   await user.save();
 
   res.status(200).json({ success: true, user });
+});
+
+//reset password
+export const resetPassword = catchAsyncError(async (req, res, next) => {
+  const resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+
+  const user = await User.findOne({
+    _id: req.user._id,
+    resetPasswordToken,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+  if (!user) {
+    return next(new ErrorHandler("Invalid Token or Token Expired", 400));
+  }
+  if (req.body.password !== req.body.confirmPassword) {
+    return next(
+      new ErrorHandler("Password Does Not Match To Confirm Password", 400)
+    );
+  }
+
+  user.password = req.body.password;
+
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+  await user.save();
+
+  sendToken(user, 200, res);
+});
+
+// delete user
+export const deleteUser = catchAsyncError(async (req, res, next) => {
+  const id = req.user._id;
+
+  await User.findByIdAndDelete(id);
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    expires: new Date(0),
+  };
+
+  res.status(200).cookie("token", null, options).json({
+    success: true,
+    message: "User deleted successfully",
+  });
 });
 
 // add to whishlist

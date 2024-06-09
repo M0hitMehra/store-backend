@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import crypto from "crypto"
+
 const userSchema = mongoose.Schema(
   {
     firstName: {
@@ -48,8 +50,8 @@ const userSchema = mongoose.Schema(
     ],
     otp: Number,
     otp_expiry: Date,
-    resetPasswordOtp: Number,
-    resetPasswordOtpExpiry: Date,
+    resetPasswordToken: Number,
+    resetPasswordExpire: Date,
   },
   { timestamps: true }
 );
@@ -71,6 +73,19 @@ userSchema.methods.getJWTToken = function () {
 userSchema.methods.comparePassword = async function (newpassword) {
   const match = await bcrypt.compare(newpassword, this.password);
   return match;
+};
+
+userSchema.methods.getResetPasswordToken = async function (password) {
+  //Generating  Token
+  const resetToken = crypto.randomBytes(20).toString("hex");
+
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+
+  return resetToken;
 };
 
 userSchema.index({ otp_expiry: 1 }, { expireAfterSeconds: 1 });
