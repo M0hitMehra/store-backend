@@ -4,11 +4,13 @@ import { isAuthenticated } from "../middlewares/auth.js";
 import {
   addToWishlist,
   createUser,
+  deleteUser,
   getUser,
   getWishlist,
   login,
   logout,
   removeFromWishlist,
+  resetPassword,
   updateProfile,
   updateProfileImage,
   verify,
@@ -35,6 +37,10 @@ router
 router.route("/wishlist").get(isAuthenticated, getWishlist);
 
 router.route("/user/update").post(isAuthenticated, updateProfile);
+
+router.route("/user/delete").delete(isAuthenticated, deleteUser);
+
+router.route("/user/reset/:token").put(isAuthenticated, resetPassword);
 
 router.route("/user/update/image").post(isAuthenticated, updateProfileImage);
 
