@@ -10,11 +10,13 @@ import { v2 as cloudinary } from "cloudinary";
 
 
 
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
 
 const options = {
   overwrite: true,
@@ -212,13 +214,10 @@ export const deleteUser = catchAsyncError(async (req, res, next) => {
     });
   }
 
-  // Delete user's images from Cloudinary
-  const images = user.avatar; // Assuming user schema has an images field storing Cloudinary URLs or public IDs
-  if (images && images.length > 0) {
-    for (const image of images) {
-      const publicId = image.public_id || image; // Adjust based on your schema
-      await cloudinary.uploader.destroy(publicId, options);
-    }
+  // Delete user's avatar image from Cloudinary
+  const avatar = user.avatar; // Assuming user schema has an avatar field storing Cloudinary public ID and URL
+  if (avatar && avatar.public_id) {
+    await cloudinary.uploader.destroy(avatar.public_id, options);
   }
 
   // Delete user from database
