@@ -6,6 +6,24 @@ import { mediaUpload } from "../utils/mediaUpload.js";
 import { sendMail } from "../utils/sendEmail.js";
 import { sendToken } from "../utils/sendToken.js";
 import crypto from "crypto";
+import { v2 as cloudinary } from "cloudinary";
+
+
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const options = {
+  overwrite: true,
+  invalidate: true,
+  resource_type: "auto",
+};
+
+
+
 // Create a new user
 export const createUser = catchAsyncError(async (req, res, next) => {
   const { firstName, lastName, email, password } = req.body;
@@ -185,21 +203,40 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
 export const deleteUser = catchAsyncError(async (req, res, next) => {
   const id = req.user._id;
 
+  // Find user by ID
+  const user = await User.findById(id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  // Delete user's images from Cloudinary
+  const images = user.images; // Assuming user schema has an images field storing Cloudinary URLs or public IDs
+  if (images && images.length > 0) {
+    for (const image of images) {
+      const publicId = image.public_id || image; // Adjust based on your schema
+      await cloudinary.uploader.destroy(publicId, options);
+    }
+  }
+
+  // Delete user from database
   await User.findByIdAndDelete(id);
 
-  const options = {
+  // Clear cookie and send response
+  const cookieOptions = {
     httpOnly: true,
     secure: true,
     sameSite: "none",
     expires: new Date(0),
   };
 
-  res.status(200).cookie("token", null, options).json({
+  res.status(200).cookie("token", null, cookieOptions).json({
     success: true,
     message: "User deleted successfully",
   });
 });
-
 // add to whishlist
 
 export const addToWishlist = catchAsyncError(async (req, res, next) => {
