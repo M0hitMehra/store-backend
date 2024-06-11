@@ -213,7 +213,7 @@ export const deleteUser = catchAsyncError(async (req, res, next) => {
   }
 
   // Delete user's images from Cloudinary
-  const images = user.images; // Assuming user schema has an images field storing Cloudinary URLs or public IDs
+  const images = user.avatar; // Assuming user schema has an images field storing Cloudinary URLs or public IDs
   if (images && images.length > 0) {
     for (const image of images) {
       const publicId = image.public_id || image; // Adjust based on your schema
