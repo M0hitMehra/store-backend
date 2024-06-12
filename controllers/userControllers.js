@@ -8,23 +8,17 @@ import { sendToken } from "../utils/sendToken.js";
 import crypto from "crypto";
 import { v2 as cloudinary } from "cloudinary";
 
-
-
-
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-
 const options = {
   overwrite: true,
   invalidate: true,
   resource_type: "auto",
 };
-
-
 
 // Create a new user
 export const createUser = catchAsyncError(async (req, res, next) => {
@@ -216,7 +210,9 @@ export const deleteUser = catchAsyncError(async (req, res, next) => {
 
   // Delete user's avatar image from Cloudinary
   const avatar = user.avatar; // Assuming user schema has an avatar field storing Cloudinary public ID and URL
+  console.log("Avatar", avatar);
   if (avatar && avatar.public_id) {
+    console.log("public_id", avatar.public_id);
     await cloudinary.uploader.destroy(avatar.public_id, options);
   }
 
