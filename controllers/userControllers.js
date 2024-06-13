@@ -153,7 +153,7 @@ export const updateProfileImage = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("User not found", 404));
   }
 
-  const media = await mediaUpload(image);
+  const media = await mediaUpload(image,next);
   const avatar = {
     public_id: media.public_id,
     url: media.secure_url,
@@ -197,6 +197,18 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
 
 // delete user
 export const deleteUser = catchAsyncError(async (req, res, next) => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
+  const options = {
+    overwrite: true,
+    invalidate: true,
+    resource_type: "image",
+  };
+
   const id = req.user._id;
 
   // Find user by ID
