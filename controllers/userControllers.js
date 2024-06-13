@@ -34,7 +34,7 @@ export const createUser = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("User already exists", 400));
   }
 
-  const otp = Math.floor(Math.random() * 1000000);
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   req.body.otp = otp;
   req.body.otp_expiry = new Date(
@@ -153,7 +153,7 @@ export const updateProfileImage = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("User not found", 404));
   }
 
-  const media = await mediaUpload(image,next);
+  const media = await mediaUpload(image, next);
   const avatar = {
     public_id: media.public_id,
     url: media.secure_url,
