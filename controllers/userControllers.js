@@ -140,6 +140,18 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
 
 // update profile image
 export const updateProfileImage = catchAsyncError(async (req, res, next) => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
+  const options = {
+    overwrite: true,
+    invalidate: true,
+    resource_type: "image",
+  };
+
   const { image } = req.body;
 
   if (!image) {
@@ -161,6 +173,11 @@ export const updateProfileImage = catchAsyncError(async (req, res, next) => {
         404
       )
     );
+  }
+
+  const prevAvatar = user.avatar; // Assuming user schema has an avatar field storing Cloudinary public ID and URL
+  if (prevAvatar && prevAvatar.public_id) {
+    await cloudinary.uploader.destroy(prevAvatar.public_id, options);
   }
 
   const media = await mediaUpload(image, next);
@@ -232,7 +249,6 @@ export const deleteUser = catchAsyncError(async (req, res, next) => {
 
   // Delete user's avatar image from Cloudinary
   const avatar = user.avatar; // Assuming user schema has an avatar field storing Cloudinary public ID and URL
-  console.log("Avatar", avatar);
   if (avatar && avatar.public_id) {
     console.log("public_id", avatar.public_id);
     await cloudinary.uploader.destroy(avatar.public_id, options);
