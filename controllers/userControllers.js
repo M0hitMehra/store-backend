@@ -149,8 +149,18 @@ export const updateProfileImage = catchAsyncError(async (req, res, next) => {
   const userId = req.user._id;
 
   const user = await User.findById(userId);
+
   if (!user) {
     return next(new ErrorHandler("User not found", 404));
+  }
+
+  if (user?.verified === false) {
+    return next(
+      new ErrorHandler(
+        "Only verified users are allowed to update profile image ",
+        404
+      )
+    );
   }
 
   const media = await mediaUpload(image, next);
