@@ -339,3 +339,43 @@ export const getWishlist = catchAsyncError(async (req, res, next) => {
     wishlist: user.wishlist,
   });
 });
+
+// recently visited product post
+export const saveRecentlyVisitedProduct = catchAsyncError(async (req, res) => {
+  const userId = req.user._id; // Assuming user is authenticated and req.user is available
+  const productId = req.params.id;
+
+  // Find the user
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  // Update the recently visited products list
+  const maxVisitedProducts = 10; // Maximum number of recently visited products to store
+  user.recentlyVisited = [
+    productId,
+    ...user.recentlyVisited.filter(
+      (id) => id.toString() !== productId.toString()
+    ),
+  ].slice(0, maxVisitedProducts);
+
+  await user.save();
+
+  res.status(200).json({ success: true, message: "Product visit recorded" });
+});
+
+// get all recently visited products
+export const getReceentlyVisitedProducts = catchAsyncError(async (req, res) => {
+  const userId = req.user._id; // Assuming user is authenticated and req.user is available
+
+  // Find the user and populate the recently visited products
+  const user = await User.findById(userId).populate("recentlyVisited");
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  res
+    .status(200)
+    .json({ success: true, recentlyVisited: user.recentlyVisited });
+});

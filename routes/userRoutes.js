@@ -5,12 +5,14 @@ import {
   addToWishlist,
   createUser,
   deleteUser,
+  getReceentlyVisitedProducts,
   getUser,
   getWishlist,
   login,
   logout,
   removeFromWishlist,
   resetPassword,
+  saveRecentlyVisitedProduct,
   updateProfile,
   updateProfileImage,
   verify,
@@ -32,7 +34,7 @@ router.route("/wishlist/:productId").post(isAuthenticated, addToWishlist);
 
 router
   .route("/wishlist/remove/:productId")
-  .post(isAuthenticated, removeFromWishlist);
+  .delete(isAuthenticated, removeFromWishlist);
 
 router.route("/wishlist").get(isAuthenticated, getWishlist);
 
@@ -43,5 +45,13 @@ router.route("/user/delete").delete(isAuthenticated, deleteUser);
 router.route("/user/reset/:token").put(isAuthenticated, resetPassword);
 
 router.route("/user/update/image").post(isAuthenticated, updateProfileImage);
+
+router
+  .route("/user/history/:id")
+  .post(isAuthenticated, saveRecentlyVisitedProduct);
+
+router
+  .route("/user/recently-visited")
+  .get(isAuthenticated, getReceentlyVisitedProducts);
 
 export default router;
