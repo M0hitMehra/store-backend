@@ -140,6 +140,18 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
 
 // update profile image
 export const updateProfileImage = catchAsyncError(async (req, res, next) => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
+  const options = {
+    overwrite: true,
+    invalidate: true,
+    resource_type: "image",
+  };
+
   const { image } = req.body;
 
   if (!image) {
@@ -161,6 +173,11 @@ export const updateProfileImage = catchAsyncError(async (req, res, next) => {
         404
       )
     );
+  }
+
+  const prevAvatar = user.avatar; // Assuming user schema has an avatar field storing Cloudinary public ID and URL
+  if (prevAvatar && prevAvatar.public_id) {
+    await cloudinary.uploader.destroy(prevAvatar.public_id, options);
   }
 
   const media = await mediaUpload(image, next);
@@ -232,7 +249,6 @@ export const deleteUser = catchAsyncError(async (req, res, next) => {
 
   // Delete user's avatar image from Cloudinary
   const avatar = user.avatar; // Assuming user schema has an avatar field storing Cloudinary public ID and URL
-  console.log("Avatar", avatar);
   if (avatar && avatar.public_id) {
     console.log("public_id", avatar.public_id);
     await cloudinary.uploader.destroy(avatar.public_id, options);
@@ -322,4 +338,44 @@ export const getWishlist = catchAsyncError(async (req, res, next) => {
     success: true,
     wishlist: user.wishlist,
   });
+});
+
+// recently visited product post
+export const saveRecentlyVisitedProduct = catchAsyncError(async (req, res) => {
+  const userId = req.user._id; // Assuming user is authenticated and req.user is available
+  const productId = req.params.id;
+
+  // Find the user
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  // Update the recently visited products list
+  const maxVisitedProducts = 10; // Maximum number of recently visited products to store
+  user.recentlyVisited = [
+    productId,
+    ...user.recentlyVisited.filter(
+      (id) => id.toString() !== productId.toString()
+    ),
+  ].slice(0, maxVisitedProducts);
+
+  await user.save();
+
+  res.status(200).json({ success: true, message: "Product visit recorded" });
+});
+
+// get all recently visited products
+export const getReceentlyVisitedProducts = catchAsyncError(async (req, res) => {
+  const userId = req.user._id; // Assuming user is authenticated and req.user is available
+
+  // Find the user and populate the recently visited products
+  const user = await User.findById(userId).populate("recentlyVisited");
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  res
+    .status(200)
+    .json({ success: true, recentlyVisited: user.recentlyVisited });
 });

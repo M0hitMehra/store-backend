@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import crypto from "crypto"
+import crypto from "crypto";
 
 const userSchema = mongoose.Schema(
   {
@@ -43,6 +43,12 @@ const userSchema = mongoose.Schema(
       type: String,
     },
     wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
+    recentlyVisited: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
