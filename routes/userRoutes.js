@@ -2,17 +2,21 @@ import express from "express";
 
 import { isAuthenticated } from "../middlewares/auth.js";
 import {
+  addToCart,
   addToWishlist,
   createUser,
   deleteUser,
+  getCart,
   getReceentlyVisitedProducts,
   getUser,
   getWishlist,
   login,
   logout,
+  removeFromCart,
   removeFromWishlist,
   resetPassword,
   saveRecentlyVisitedProduct,
+  updateProductQuantity,
   updateProfile,
   updateProfileImage,
   verify,
@@ -53,5 +57,10 @@ router
 router
   .route("/user/recently-visited")
   .get(isAuthenticated, getReceentlyVisitedProducts);
+
+router.route("/cart/add").post(isAuthenticated, addToCart);
+router.route("/cart/remove").post(isAuthenticated, removeFromCart);
+router.route("/cart").get(isAuthenticated, getCart);
+router.route("/cart/update").post(isAuthenticated, updateProductQuantity);
 
 export default router;
