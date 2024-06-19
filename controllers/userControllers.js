@@ -270,8 +270,8 @@ export const deleteUser = catchAsyncError(async (req, res, next) => {
     message: "User deleted successfully",
   });
 });
-// add to whishlist
 
+// add to whishlist
 export const addToWishlist = catchAsyncError(async (req, res, next) => {
   const { productId } = req.params;
   const userId = req.user._id;
@@ -399,10 +399,7 @@ export const addToCart = catchAsyncError(async (req, res, next) => {
   );
 
   if (existingItem) {
-    existingItem.quantity += quantity;
-    if (existingItem.quantity > product.stock) {
-      return next(new ErrorHandler("Not enough stock available", 400));
-    }
+    return next(new ErrorHandler("Product is already in cart", 400));
   } else {
     user.cart.push({ product: productId, quantity });
   }
