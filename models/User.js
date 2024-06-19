@@ -54,6 +54,20 @@ const userSchema = mongoose.Schema(
         ref: "Product",
       },
     ],
+    cart: [
+      {
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+      },
+    ],
     otp: Number,
     otp_expiry: Date,
     resetPasswordToken: Number,
