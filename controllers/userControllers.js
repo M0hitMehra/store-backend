@@ -8,18 +8,6 @@ import { sendToken } from "../utils/sendToken.js";
 import crypto from "crypto";
 import { v2 as cloudinary } from "cloudinary";
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-const options = {
-  overwrite: true,
-  invalidate: true,
-  resource_type: "auto",
-};
-
 // Create a new user
 export const createUser = catchAsyncError(async (req, res, next) => {
   const { firstName, lastName, email, password } = req.body;
@@ -341,44 +329,57 @@ export const getWishlist = catchAsyncError(async (req, res, next) => {
 });
 
 // recently visited product post
-export const saveRecentlyVisitedProduct = catchAsyncError(async (req, res) => {
-  const userId = req.user._id; // Assuming user is authenticated and req.user is available
-  const productId = req.params.id;
+export const saveRecentlyVisitedProduct = catchAsyncError(
+  async (req, res, next) => {
+    const userId = req.user._id; // Assuming user is authenticated and req.user is available
+    const productId = req.params.id;
 
-  // Find the user
-  const user = await User.findById(userId);
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return next(new ErrorHandler("User not found", 404));
+    }
+
+    // Update the recently visited products list
+    const maxVisitedProducts = 10; // Maximum number of recently visited products to store
+    const newVisitedProduct = { product: productId, visitedAt: new Date() };
+
+    user.recentlyVisited = [
+      newVisitedProduct,
+      ...user.recentlyVisited.filter(
+        (item) => item?.product?.toString() !== productId?.toString()
+      ),
+    ].slice(0, maxVisitedProducts);
+
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Product visit recorded" });
   }
-
-  // Update the recently visited products list
-  const maxVisitedProducts = 10; // Maximum number of recently visited products to store
-  user.recentlyVisited = [
-    productId,
-    ...user.recentlyVisited.filter(
-      (id) => id.toString() !== productId.toString()
-    ),
-  ].slice(0, maxVisitedProducts);
-
-  await user.save();
-
-  res.status(200).json({ success: true, message: "Product visit recorded" });
-});
+);
 
 // get all recently visited products
-export const getReceentlyVisitedProducts = catchAsyncError(async (req, res) => {
-  const userId = req.user._id; // Assuming user is authenticated and req.user is available
+export const getReceentlyVisitedProducts = catchAsyncError(
+  async (req, res, next) => {
+    const userId = req.user._id;
+    const limit = parseInt(req.query.limit) || 10;
 
-  // Find the user and populate the recently visited products
-  const user = await User.findById(userId).populate("recentlyVisited");
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+    const user = await User.findById(userId).populate({
+      path: "recentlyVisited.product",
+    });
+
+    let recentlyVisited = [];
+
+    user?.recentlyVisited?.map((item) => {
+      recentlyVisited.push(item?.product);
+    });
+
+    if (!user) {
+      return next(new ErrorHandler("User not found", 404));
+    }
+
+    res.status(200).json({ success: true, recentlyVisited });
   }
-
-  res
-    .status(200)
-    .json({ success: true, recentlyVisited: user.recentlyVisited });
-});
+);
 
 // Add to CARt
 export const addToCart = catchAsyncError(async (req, res, next) => {

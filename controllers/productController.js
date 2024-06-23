@@ -1,6 +1,8 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { Product } from "../models/Product.js";
 import ErrorHandler from "../utils/errorHandlers.js";
+import { v2 as cloudinary } from "cloudinary";
+import { mediaUpload } from "../utils/mediaUpload.js";
 
 // Get single product
 export const getProductController = catchAsyncError(async (req, res, next) => {
@@ -14,6 +16,7 @@ export const getProductController = catchAsyncError(async (req, res, next) => {
   if (!product) {
     return next(new ErrorHandler("Product not found", 404));
   }
+
   res.status(200).json({
     success: true,
     product,
@@ -23,6 +26,18 @@ export const getProductController = catchAsyncError(async (req, res, next) => {
 // Create new product
 export const createProductController = catchAsyncError(
   async (req, res, next) => {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
+    const options = {
+      overwrite: true,
+      invalidate: true,
+      resource_type: "image",
+    };
+
     const {
       title,
       price,
@@ -33,11 +48,10 @@ export const createProductController = catchAsyncError(
       description,
       story,
       otherDetails,
-      // images,
+      images,
       category,
     } = req.body;
 
-    // Validate required fields
     // Validate required fields
     if (!title) {
       return next(new ErrorHandler("Title is required", 400));
@@ -67,28 +81,17 @@ export const createProductController = catchAsyncError(
       return next(new ErrorHandler("Category is required", 400));
     }
 
-    // if (!images) {
-    //   return next(new ErrorHandler("Images are required", 400));
-    // }
+    const uploadedImages = [];
+    if (images) {
+      for (const image of images) {
+        const media = await mediaUpload(image, next);
+        uploadedImages.push({
+          public_id: media?.public_id,
+          url: media?.secure_url,
+        });
+      }
+    }
 
-    let images = [
-      {
-        url: "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_600,h_600/global/308158/02/sv01/fnd/AUS/fmt/png/Porsche-Legacy-Caven-2.0-Unisex-Motorsport-Sneakers",
-        image_id: "red",
-      },
-      {
-        url: "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_600,h_600/global/308158/02/fnd/AUS/fmt/png/Porsche-Legacy-Caven-2.0-Unisex-Motorsport-Sneakers",
-        image_id: "123",
-      },
-      {
-        url: "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_600,h_600/global/308158/02/sv02/fnd/AUS/fmt/png/Porsche-Legacy-Caven-2.0-Unisex-Motorsport-Sneakers",
-        image_id: "098777798",
-      },
-      {
-        url: "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_600,h_600/global/308158/02/sv04/fnd/AUS/fmt/png/Porsche-Legacy-Caven-2.0-Unisex-Motorsport-Sneakers",
-        image_id: "03498777798",
-      },
-    ];
     const product = await Product.create({
       title,
       price,
@@ -99,7 +102,7 @@ export const createProductController = catchAsyncError(
       description,
       story,
       otherDetails,
-      images,
+      images: uploadedImages,
       category,
     });
 

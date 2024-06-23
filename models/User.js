@@ -50,8 +50,14 @@ const userSchema = mongoose.Schema(
     ],
     recentlyVisited: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+        },
+        visitedAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
     cart: [
