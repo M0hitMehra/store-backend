@@ -26,12 +26,11 @@ const productSchema = new mongoose.Schema(
     },
     images: [
       {
+        public_id: String,
         url: {
           type: String,
-          required: true,
-        },
-        image_id: {
-          type: String,
+          default:
+            "https://res.cloudinary.com/mohit786/image/upload/v1693677254/cv9gdgz150vtoimcga0e.jpg",
         },
       },
     ],
@@ -50,17 +49,29 @@ const productSchema = new mongoose.Schema(
     description: {
       type: String,
     },
-    story: {
-      type: String,
-    },
+    
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
     },
     otherDetails: {
-      type: Map,
-      of: String,
+      productStory: {
+        title: String,
+        description: String,
+      },
+      productDetails: {
+        title: String,
+        description: [{ type: String }],
+      },
+      manufacturAddress: {
+        title: String,
+        description: String,
+      },
+      countoryOrigin: {
+        title: String,
+        description: String,
+      },
     },
   },
   { timestamps: true }
