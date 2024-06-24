@@ -4,7 +4,6 @@ import express from "express";
 export const app = express();
 import cors from "cors";
 import bodyParser from "body-parser";
-import { fileURLToPath } from "url";
 
 app.use(express.json());
 app.use(cookieParser());
@@ -24,8 +23,8 @@ app.use(
     origin: function (origin, callback) {
       if (
         origin === "http://localhost:3000" ||
-        origin === "https://store-4tfi.vercel.app" ||
-        origin === "https://store-backend-0jpc.onrender.com"
+        origin === "https://store-backend-0jpc.onrender.com/" ||
+        origin === "https://store-4tfi.vercel.app"
       ) {
         callback(null, true);
       } else {
