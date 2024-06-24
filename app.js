@@ -24,7 +24,8 @@ app.use(
     origin: function (origin, callback) {
       if (
         origin === "http://localhost:3000" ||
-        origin === "https://store-4tfi.vercel.app"
+        origin === "https://store-4tfi.vercel.app" ||
+        origin === "https://store-backend-0jpc.onrender.com"
       ) {
         callback(null, true);
       } else {
