@@ -19,23 +19,23 @@ app.use(
 app.use(bodyParser.text({ limit: "200mb" }));
 
 app.use(express.urlencoded({ extended: true }));
-// app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       if (
-//         origin === "http://localhost:3000" ||
-//         origin === "https://store-4tfi.vercel.app"
-//       ) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("Not allowed by CORS"));
-//       }
-//     },
-//     credentials: true,
-//   })
-// );
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (
+        origin === "http://localhost:3000" ||
+        origin === "https://store-4tfi.vercel.app"
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
-app.use(cors());
+// app.use(cors());
 import productRoutes from "./routes/productRoutes.js";
 import brandRoutes from "./routes/brandRoutes.js";
 import colorRoutes from "./routes/colorRoutes.js";
