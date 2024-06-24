@@ -1,0 +1,189 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>API Testing</title>
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            margin-bottom: 20px;
+        }
+        .container label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .container input,
+        .container button {
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        .api-link {
+            display: block;
+            margin: 10px 0;
+            color: blue;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        pre {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+        }
+        </style>
+    </head>
+    <body>
+        <h1>API Testing</h1>
+        <div id="api-container">
+        <a class="api-link" data-method="GET" href="/api/v1/brand/getSingle/:id"
+            >Get Single Brand</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/brand/getAll"
+            >Get All Brands</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/brand/create"
+            >Create Brand</a
+        >
+        <a
+            class="api-link"
+            data-method="GET"
+            href="/api/v1/category/getSingle/:id"
+            >Get Single Category</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/category/getAll"
+            >Get All Categories</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/category/create"
+            >Create Category</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/color/getSingle/:id"
+            >Get Single Color</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/color/getAll"
+            >Get All Colors</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/color/create"
+            >Create Color</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/product/product/:id"
+            >Get Single Product</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/product/products"
+            >Get All Products</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/product/product/"
+            >Create Product</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/size/getSingle/:id"
+            >Get Single Size</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/size/getAll"
+            >Get All Sizes</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/size/create"
+            >Create Size</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/auth/register"
+            >Register User</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/auth/verify"
+            >Verify User</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/auth/login"
+            >Login User</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/auth/logout"
+            >Logout User</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/auth/user"
+            >Get User</a
+        >
+        <a
+            class="api-link"
+            data-method="POST"
+            href="/api/v1/auth/wishlist/:productId"
+            >Add to Wishlist</a
+        >
+        <a
+            class="api-link"
+            data-method="DELETE"
+            href="/api/v1/auth/wishlist/remove/:productId"
+            >Remove from Wishlist</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/auth/wishlist"
+            >Get Wishlist</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/auth/user/update"
+            >Update Profile</a
+        >
+        <a class="api-link" data-method="DELETE" href="/api/v1/auth/user/delete"
+            >Delete User</a
+        >
+        <a
+            class="api-link"
+            data-method="PUT"
+            href="/api/v1/auth/user/reset/:token"
+            >Reset Password</a
+        >
+        <a
+            class="api-link"
+            data-method="POST"
+            href="/api/v1/auth/user/update/image"
+            >Update Profile Image</a
+        >
+        <a
+            class="api-link"
+            data-method="POST"
+            href="/api/v1/auth/user/history/:id"
+            >Save Recently Visited Product</a
+        >
+        <a
+            class="api-link"
+            data-method="GET"
+            href="/api/v1/auth/user/recently-visited"
+            >Get Recently Visited Products</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/auth/cart/add"
+            >Add to Cart</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/auth/cart/remove"
+            >Remove from Cart</a
+        >
+        <a class="api-link" data-method="GET" href="/api/v1/auth/cart"
+            >Get Cart</a
+        >
+        <a class="api-link" data-method="POST" href="/api/v1/auth/cart/update"
+            >Update Cart Quantity</a
+        >
+        </div>
+        <div id="response-container">
+        <h2>API Response</h2>
+        <pre id="api-response"></pre>
+        </div>
+        <script>
+        document.querySelectorAll(".api-link").forEach((link) => {
+            link.addEventListener("click", async (event) => {
+            event.preventDefault();
+            const method = link.getAttribute("data-method");
+            const url = link.getAttribute("href");
+            const options = { method, credentials: "include" };
+            if (method === "POST" || method === "PUT") {
+                options.headers = { "Content-Type": "application/json" };
+                options.body = JSON.stringify({}); // Adjust payload as needed
+            }
+            const response = await fetch(url, options);
+            const result = await response.json();
+            document.getElementById("api-response").textContent = JSON.stringify(
+                result,
+                null,
+                2
+            );
+            });
+        });
+        </script>
+    </body>
+    </html>
