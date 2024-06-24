@@ -18,14 +18,19 @@ app.use(
 app.use(bodyParser.text({ limit: "200mb" }));
 
 app.use(express.urlencoded({ extended: true }));
+
+const allowedOrigins = [
+  "http://localhost:8080",
+  "https://store-backend-0jpc.onrender.com",
+  "https://store-4tfi.vercel.app",
+];
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (
-        origin === "http://localhost:3000" ||
-        origin === "https://store-backend-0jpc.onrender.com/" ||
-        origin === "https://store-4tfi.vercel.app"
-      ) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
