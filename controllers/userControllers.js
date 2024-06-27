@@ -1,6 +1,6 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { Product } from "../models/Product.js";
-import { User } from "../models/User.js";
+import User from "../models/User.js";
 import ErrorHandler from "../utils/errorHandlers.js";
 import { mediaUpload } from "../utils/mediaUpload.js";
 import { sendMail } from "../utils/sendEmail.js";
@@ -180,6 +180,44 @@ export const updateProfileImage = catchAsyncError(async (req, res, next) => {
   res.status(200).json({ success: true, user });
 });
 
+//Forgot password
+export const forgotPassword = catchAsyncError(async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) {
+    return next(new ErrorHandler("User Not Found", 404));
+  }
+
+  if (user.resetPasswordToken && user.resetPasswordExpire > Date.now()) {
+    return next(new ErrorHandler("Email has been already sent", 400));
+  }
+
+  const resetToken = await user.getResetPasswordToken();
+
+  await user.save({ validateBeforeSave: false });
+  console.log(user?.resetPasswordToken);
+
+  const url = `https://store-4tfi.vercel.app/password/reset/${resetToken}`;
+
+  const message = `Your reset password token is :- \n\n${url} \n\nIf you have not requested this email then ,Please ignore it.`;
+
+  try {
+    await sendMail(user.email, `Ecommerce Password Reset`, message);
+
+    res.status(200).json({
+      success: true,
+      message: `Email Sent to ${user.email} successfully`,
+    });
+  } catch (error) {
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return next(new ErrorHandler(error.message, 500));
+  }
+  console.log(message);
+});
+
 //reset password
 export const resetPassword = catchAsyncError(async (req, res, next) => {
   const resetPasswordToken = crypto
@@ -188,26 +226,49 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
     .digest("hex");
 
   const user = await User.findOne({
-    _id: req.user._id,
     resetPasswordToken,
     resetPasswordExpire: { $gt: Date.now() },
   });
+
+  // console.log(resetPasswordToken, req.params.token, user);
+
   if (!user) {
     return next(new ErrorHandler("Invalid Token or Token Expired", 400));
   }
-  if (req.body.password !== req.body.confirmPassword) {
+  if (req.body.newPassword !== req.body.confirmPassword) {
     return next(
       new ErrorHandler("Password Does Not Match To Confirm Password", 400)
     );
   }
 
-  user.password = req.body.password;
+  user.password = req.body.newPassword;
 
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
   await user.save();
 
-  sendToken(user, 200, res);
+  sendToken(res, user, 200);
+});
+
+//Update User password
+export const updatePassword = catchAsyncError(async (req, res, next) => {
+  const user = await User.findById(req.user.id).select("+password");
+  const isPasswordMatched = await user.comparePassword(req.body.oldPassword);
+
+  if (!isPasswordMatched) {
+    return next(new ErrorHandler("Old Password is not correct", 401));
+  }
+
+  if (req.body.newPassword !== req.body.confirmPassword) {
+    return next(
+      new ErrorHandler("Old Password is not same as new password", 401)
+    );
+  }
+
+  user.password = req.body.newPassword;
+
+  await user.save();
+  sendToken(res, user, 200);
 });
 
 // delete user
