@@ -76,7 +76,7 @@ const userSchema = mongoose.Schema(
     ],
     otp: Number,
     otp_expiry: Date,
-    resetPasswordToken: Number,
+    resetPasswordToken: String,
     resetPasswordExpire: Date,
   },
   { timestamps: true }
@@ -116,4 +116,5 @@ userSchema.methods.getResetPasswordToken = async function (password) {
 
 userSchema.index({ otp_expiry: 1 }, { expireAfterSeconds: 1 });
 
-export const User = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+export default User;

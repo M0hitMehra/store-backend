@@ -21,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const allowedOrigins = [
   "http://localhost:8080",
+  "http://localhost:3000",
   "https://store-backend-0jpc.onrender.com",
   "https://store-4tfi.vercel.app",
 ];

@@ -6,6 +6,7 @@ import {
   addToWishlist,
   createUser,
   deleteUser,
+  forgotPassword,
   getCart,
   getReceentlyVisitedProducts,
   getUser,
@@ -16,6 +17,7 @@ import {
   removeFromWishlist,
   resetPassword,
   saveRecentlyVisitedProduct,
+  updatePassword,
   updateProductQuantity,
   updateProfile,
   updateProfileImage,
@@ -46,7 +48,12 @@ router.route("/user/update").post(isAuthenticated, updateProfile);
 
 router.route("/user/delete").delete(isAuthenticated, deleteUser);
 
-router.route("/user/reset/:token").put(isAuthenticated, resetPassword);
+router.route("/user/password/forgot").post(forgotPassword);
+
+router.route("/user/reset/:token").put(resetPassword);
+
+router.route("/user/password/update").put(isAuthenticated, updatePassword);
+
 
 router.route("/user/update/image").post(isAuthenticated, updateProfileImage);
 

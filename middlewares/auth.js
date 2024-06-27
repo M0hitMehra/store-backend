@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { User } from "../models/User.js";
+import User from "../models/User.js";
 import { catchAsyncError } from "./catchAsyncError.js";
 import ErrorHandler from "../utils/errorHandlers.js";
 
