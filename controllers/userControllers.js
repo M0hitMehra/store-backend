@@ -197,7 +197,7 @@ export const forgotPassword = catchAsyncError(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
   console.log(user?.resetPasswordToken);
 
-  const url = `https://store-4tfi.vercel.app/password/reset/${resetToken}`;
+  const url = `https://store-4tfi.vercel.app/reset/password/${resetToken}`;
 
   const message = `Your reset password token is :- \n\n${url} \n\nIf you have not requested this email then ,Please ignore it.`;
 
