@@ -22,6 +22,9 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Category = mongoose.model("Category", categorySchema);
+categorySchema.pre("save", function (next) {
+  this.name = this.name.toLowerCase();
+  next();
+});
 
-export default Category;
+export const Category = mongoose.model("Category", categorySchema);

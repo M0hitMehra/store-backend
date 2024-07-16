@@ -3,6 +3,7 @@ import { Product } from "../models/Product.js";
 import ErrorHandler from "../utils/errorHandlers.js";
 import { v2 as cloudinary } from "cloudinary";
 import { mediaUpload } from "../utils/mediaUpload.js";
+import mongoose from "mongoose";
 
 // Get single product
 export const getProductController = catchAsyncError(async (req, res, next) => {
@@ -102,7 +103,14 @@ export const createProductController = catchAsyncError(
       description,
       story,
       otherDetails,
-      images: uploadedImages,
+      images:
+        uploadedImages?.length > 0
+          ? uploadedImages
+          : [
+              {
+                url: "https://res.cloudinary.com/mohit786/image/upload/v1693677254/cv9gdgz150vtoimcga0e.jpg",
+              },
+            ],
       category,
     });
 
@@ -114,13 +122,107 @@ export const createProductController = catchAsyncError(
 );
 
 export const getAllProduct = catchAsyncError(async (req, res, next) => {
-  const products = await Product.find(req.query)
+  const {
+    page = 1,
+    limit = 9,
+    search = "",
+    category,
+    brand,
+    color,
+    size,
+    sort = "createdAt", // Default sort field
+    order = "asc", // Default sort order
+  } = req.query;
+
+  const query = {};
+
+  if (search) {
+    if (search.length < 3) {
+      return next(new ErrorHandler("Please enter at least 3 characters", 400));
+    }
+    query.$or = [
+      { title: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+      { price: parseFloat(search) ? parseFloat(search) : undefined },
+      { "color.name": { $regex: search, $options: "i" } },
+      // Add more fields as needed
+    ];
+  }
+
+  if (category) {
+    query.category = category;
+  }
+
+  if (brand) {
+    query.brand = brand;
+  }
+
+  if (color) {
+    query.color = color;
+  }
+
+  if (size) {
+    query.size = { $in: size.split(",") }; // Support multiple sizes
+  }
+
+  // Determine sort order
+  const sortOrder = order === "desc" ? -1 : 1;
+
+  const products = await Product.find(query)
     .populate("brand")
     .populate("color")
     .populate("size")
-    .populate("category");
+    .populate("category")
+    .sort({ [sort]: sortOrder }) // Apply sorting
+    .skip((page - 1) * limit)
+    .limit(parseInt(limit));
+
+  const total = await Product.countDocuments(query);
+
   res.status(200).json({
     success: true,
     products,
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+    },
+  });
+});
+
+export const deleteProduct = catchAsyncError(async (req, res, next) => {
+  const { id } = req.params;
+
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
+  // Check if the id is a valid MongoDB ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return next(new ErrorHandler("Invalid product ID", 400));
+  }
+
+  // Find the product
+  const product = await Product.findById(id);
+
+  if (!product) {
+    return next(new ErrorHandler("Product not found", 404));
+  }
+
+  // Delete images from Cloudinary
+  const deleteImagesPromises = product.images.map((image) => {
+    return cloudinary.uploader.destroy(image.public_id);
+  });
+
+  await Promise.all(deleteImagesPromises);
+
+  // Delete the product from the database
+  await Product.findByIdAndDelete(id);
+
+  res.status(200).json({
+    success: true,
+    message: "Product and its images deleted successfully",
   });
 });

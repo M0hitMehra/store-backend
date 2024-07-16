@@ -70,4 +70,7 @@ router.route("/cart/remove").post(isAuthenticated, removeFromCart);
 router.route("/cart").get(isAuthenticated, getCart);
 router.route("/cart/update").post(isAuthenticated, updateProductQuantity);
 
+
+// Admin
+
 export default router;

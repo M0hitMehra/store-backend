@@ -22,3 +22,17 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Invalid token, please login again", 401));
   }
 });
+
+export const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new ErrorHandler(
+          `${req.user.role} is not authorized to access this Page`,
+          403
+        )
+      );
+    }
+    next();
+  };
+};
