@@ -42,6 +42,10 @@ const userSchema = mongoose.Schema(
     address: {
       type: String,
     },
+    role: {
+      type: String,
+      default: "user",
+    },
     wishlist: [
       {
         type: mongoose.Schema.Types.ObjectId,
