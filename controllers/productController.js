@@ -50,10 +50,16 @@ export const createProductController = catchAsyncError(
       story,
       otherDetails,
       images,
+      productId,
       category,
     } = req.body;
 
     // Validate required fields
+
+    if (!productId) {
+      return next(new ErrorHandler("Product ID must be provided", 400));
+    }
+
     if (!title) {
       return next(new ErrorHandler("Title is required", 400));
     }

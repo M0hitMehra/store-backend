@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
   {
+    productId: {
+      type: String,
+      required: true,
+    },
     title: {
       type: String,
       required: true,
@@ -39,13 +43,11 @@ const productSchema = new mongoose.Schema(
       ref: "Color",
       required: true,
     },
-    size: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Size",
-        required: true,
-      },
-    ],
+    size: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Size",
+      required: true,
+    },
     description: {
       type: String,
     },
