@@ -2,59 +2,34 @@ import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
   {
+    productId: {
+      type: String,
+      required: true,
+    },
     title: {
       type: String,
       required: true,
       default: "N/A",
     },
-    price: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
+    description: {
+      type: String,
     },
-    stock: {
-      type: Number,
-      required: [true, "Please enter stocks"],
-      default: 1,
-      min: 0,
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
     },
     brand: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Brand",
       required: true,
     },
-    images: [
-      {
-        public_id: String,
-        url: {
-          type: String,
-          default:
-            "https://res.cloudinary.com/mohit786/image/upload/v1693677254/cv9gdgz150vtoimcga0e.jpg",
-        },
-      },
-    ],
-    color: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Color",
-      required: true,
-    },
-    size: [
+    variants: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Size",
-        required: true,
+        ref: "Variant",
       },
     ],
-    description: {
-      type: String,
-    },
-
-    category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-      required: true,
-    },
     otherDetails: {
       productStory: {
         title: String,
@@ -68,7 +43,7 @@ const productSchema = new mongoose.Schema(
         title: String,
         description: String,
       },
-      countoryOrigin: {
+      countryOrigin: {
         title: String,
         description: String,
       },

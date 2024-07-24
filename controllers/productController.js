@@ -50,10 +50,16 @@ export const createProductController = catchAsyncError(
       story,
       otherDetails,
       images,
+      productId,
       category,
     } = req.body;
 
     // Validate required fields
+
+    if (!productId) {
+      return next(new ErrorHandler("Product ID must be provided", 400));
+    }
+
     if (!title) {
       return next(new ErrorHandler("Title is required", 400));
     }
@@ -103,6 +109,7 @@ export const createProductController = catchAsyncError(
       description,
       story,
       otherDetails,
+      productId,
       images:
         uploadedImages?.length > 0
           ? uploadedImages
@@ -224,5 +231,54 @@ export const deleteProduct = catchAsyncError(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: "Product and its images deleted successfully",
+  });
+});
+
+export const updateProduct = catchAsyncError(async (req, res, next) => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
+  const { id } = req.params;
+  const updateData = req.body;
+
+  // Check if the id is a valid MongoDB ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return next(new ErrorHandler("Invalid product ID", 400));
+  }
+
+  const product = await Product.findById(id);
+
+  if (!product) {
+    return next(new ErrorHandler("Product not found", 404));
+  }
+
+  // Update images if provided
+  if (updateData.images) {
+    // Delete old images from Cloudinary
+    const deleteImagesPromises = product.images.map((image) => {
+      return cloudinary.uploader.destroy(image.public_id);
+    });
+    await Promise.all(deleteImagesPromises);
+
+    // Upload new images to Cloudinary
+    const uploadImagesPromises = updateData.images.map(async (image) => {
+      const result = await cloudinary.uploader.upload(image.url);
+      return { public_id: result.public_id, url: result.secure_url };
+    });
+    updateData.images = await Promise.all(uploadImagesPromises);
+  }
+
+  // Update product details
+  const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
+    new: true,
+    runValidators: true,
+  });
+
+  res.status(200).json({
+    success: true,
+    product: updatedProduct,
   });
 });

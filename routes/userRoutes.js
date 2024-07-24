@@ -8,7 +8,7 @@ import {
   deleteUser,
   forgotPassword,
   getCart,
-  getReceentlyVisitedProducts,
+  getRecentlyVisitedProducts,
   getUser,
   getWishlist,
   login,
@@ -54,7 +54,6 @@ router.route("/user/reset/:token").put(resetPassword);
 
 router.route("/user/password/update").put(isAuthenticated, updatePassword);
 
-
 router.route("/user/update/image").post(isAuthenticated, updateProfileImage);
 
 router
@@ -63,13 +62,12 @@ router
 
 router
   .route("/user/recently-visited")
-  .get(isAuthenticated, getReceentlyVisitedProducts);
+  .get(isAuthenticated, getRecentlyVisitedProducts);
 
 router.route("/cart/add").post(isAuthenticated, addToCart);
 router.route("/cart/remove").post(isAuthenticated, removeFromCart);
 router.route("/cart").get(isAuthenticated, getCart);
 router.route("/cart/update").post(isAuthenticated, updateProductQuantity);
-
 
 // Admin
 
