@@ -17,13 +17,13 @@ export const getColorController = catchAsyncError(async (req, res, next) => {
 
 // Create new color
 export const createColorController = catchAsyncError(async (req, res, next) => {
-  const { name } = req.body;
+  const { name, code } = req.body;
 
-  if (!name) {
-    return next(new ErrorHandler("Please provide a name", 400));
+  if (!name || !code) {
+    return next(new ErrorHandler("Please provide both name and code", 400));
   }
 
-  const color = await Color.create({ name });
+  const color = await Color.create({ name, code });
 
   res.status(201).json({
     success: true,

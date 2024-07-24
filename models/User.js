@@ -40,12 +40,20 @@ const userSchema = mongoose.Schema(
       type: String,
     },
     address: {
-      type: String,
+      street: String,
+      city: String,
+      state: String,
+      postalCode: String,
+      country: String,
     },
     role: {
       type: String,
       default: "user",
     },
+
+    
+
+
     wishlist: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -78,6 +86,10 @@ const userSchema = mongoose.Schema(
         },
       },
     ],
+
+
+
+
     otp: Number,
     otp_expiry: Date,
     resetPasswordToken: String,

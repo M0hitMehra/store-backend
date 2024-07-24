@@ -7,6 +7,9 @@ import { sendMail } from "../utils/sendEmail.js";
 import { sendToken } from "../utils/sendToken.js";
 import crypto from "crypto";
 import { v2 as cloudinary } from "cloudinary";
+import Cart from "../models/Cart.js";
+import Wishlist from "../models/Wishlist.js";
+import RecentlyVisited from "../models/RecentlyVisited.js";
 
 // Create a new user
 export const createUser = catchAsyncError(async (req, res, next) => {
@@ -325,27 +328,28 @@ export const addToWishlist = catchAsyncError(async (req, res, next) => {
   const { productId } = req.params;
   const userId = req.user._id;
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
-  }
-
   const product = await Product.findById(productId);
   if (!product) {
     return next(new ErrorHandler("Product not found", 404));
   }
 
-  if (user.wishlist.includes(productId)) {
+  const wishlistEntry = await Wishlist.findOne({
+    user_id: userId,
+    product: productId,
+  });
+  if (wishlistEntry) {
     return next(new ErrorHandler("Product already in wishlist", 400));
   }
 
-  user.wishlist.push(productId);
-  await user.save();
+  const newWishlistEntry = await Wishlist.create({
+    user_id: userId,
+    product: productId,
+  });
 
   res.status(200).json({
     success: true,
     message: "Product added to wishlist",
-    wishlist: user.wishlist,
+    wishlist: newWishlistEntry,
   });
 });
 
@@ -354,23 +358,17 @@ export const removeFromWishlist = catchAsyncError(async (req, res, next) => {
   const { productId } = req.params;
   const userId = req.user._id;
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
-  }
-
-  const productIndex = user.wishlist.indexOf(productId);
-  if (productIndex === -1) {
+  const wishlistEntry = await Wishlist.findOneAndDelete({
+    user_id: userId,
+    product: productId,
+  });
+  if (!wishlistEntry) {
     return next(new ErrorHandler("Product not found in wishlist", 404));
   }
-
-  user.wishlist.splice(productIndex, 1);
-  await user.save();
 
   res.status(200).json({
     success: true,
     message: "Product removed from wishlist",
-    wishlist: user.wishlist,
   });
 });
 
@@ -378,14 +376,14 @@ export const removeFromWishlist = catchAsyncError(async (req, res, next) => {
 export const getWishlist = catchAsyncError(async (req, res, next) => {
   const userId = req.user._id;
 
-  const user = await User.findById(userId).populate("wishlist");
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+  const wishlist = await Wishlist.find({ user_id: userId }).populate("product");
+  if (!wishlist) {
+    return next(new ErrorHandler("Wishlist not found", 404));
   }
 
   res.status(200).json({
     success: true,
-    wishlist: user.wishlist,
+    wishlist,
   });
 });
 
@@ -401,46 +399,57 @@ export const saveRecentlyVisitedProduct = catchAsyncError(
       return next(new ErrorHandler("User not found", 404));
     }
 
+    // Find the product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return next(new ErrorHandler("Product not found", 404));
+    }
+
     // Update the recently visited products list
     const maxVisitedProducts = 10; // Maximum number of recently visited products to store
-    const newVisitedProduct = { product: productId, visitedAt: new Date() };
+    const newVisitedProduct = { product: productId, user: userId };
 
-    user.recentlyVisited = [
-      newVisitedProduct,
-      ...user.recentlyVisited.filter(
-        (item) => item?.product?.toString() !== productId?.toString()
-      ),
-    ].slice(0, maxVisitedProducts);
+    // Remove the product if it already exists
+    await RecentlyVisited.deleteMany({ user: userId, product: productId });
 
-    await user.save();
+    // Add the new product
+    await RecentlyVisited.create(newVisitedProduct);
+
+    // Keep only the latest `maxVisitedProducts` products
+    const visitedProducts = await RecentlyVisited.find({ user: userId })
+      .sort({ visitedAt: -1 })
+      .limit(maxVisitedProducts);
+
+    // Remove older products beyond the limit
+    const productIdsToKeep = visitedProducts.map((item) => item._id);
+    await RecentlyVisited.deleteMany({
+      user: userId,
+      _id: { $nin: productIdsToKeep },
+    });
 
     res.status(200).json({ success: true, message: "Product visit recorded" });
   }
 );
 
 // get all recently visited products
-export const getReceentlyVisitedProducts = catchAsyncError(
-  async (req, res, next) => {
-    const userId = req.user._id;
-    const limit = parseInt(req.query.limit) || 10;
+export const getRecentlyVisitedProducts = catchAsyncError(async (req, res, next) => {
+  const userId = req.user._id;
+  const limit = parseInt(req.query.limit) || 10;
 
-    const user = await User.findById(userId).populate({
-      path: "recentlyVisited.product",
-    });
-
-    let recentlyVisited = [];
-
-    user?.recentlyVisited?.map((item) => {
-      recentlyVisited.push(item?.product);
-    });
-
-    if (!user) {
-      return next(new ErrorHandler("User not found", 404));
-    }
-
-    res.status(200).json({ success: true, recentlyVisited });
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
   }
-);
+
+  const recentlyVisited = await RecentlyVisited.find({ user: userId })
+    .sort({ visitedAt: -1 })
+    .limit(limit)
+    .populate("product");
+
+  const products = recentlyVisited.map(item => item.product);
+
+  res.status(200).json({ success: true, recentlyVisited: products });
+});
 
 // Add to CARt
 export const addToCart = catchAsyncError(async (req, res, next) => {
@@ -455,33 +464,40 @@ export const addToCart = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Not enough stock available", 400));
   }
 
-  const user = await User.findById(req.user._id);
-  const existingItem = user.cart.find(
-    (item) => item.product.toString() === productId
-  );
+  const user = req.user._id;
+  const existingItem = await Cart.findOne({
+    user_id: user,
+    product: productId,
+  });
 
   if (existingItem) {
     return next(new ErrorHandler("Product is already in cart", 400));
   } else {
-    user.cart.push({ product: productId, quantity });
+    await Cart.create({ user_id: user, product: productId, quantity });
   }
 
-  await user.save();
-  res
-    .status(200)
-    .json({ success: true, message: "Product added to cart", cart: user.cart });
+  res.status(200).json({ success: true, message: "Product added to cart" });
 });
 
 // Remove item from cart
 export const removeFromCart = catchAsyncError(async (req, res, next) => {
   const { productId } = req.body;
-  const user = await User.findById(req.user._id);
-  user.cart = user.cart.filter((item) => item.product.toString() !== productId);
-  await user.save();
+  const user = req.user._id;
+
+  const existingItem = await Cart.findOne({
+    user_id: user,
+    product: productId,
+  });
+
+  if (!existingItem) {
+    return next(new ErrorHandler("Product not found", 400));
+  }
+
+  await Cart.findOneAndDelete({ user_id: user, product: productId });
+
   res.status(200).json({
     success: true,
     message: "Product removed from cart",
-    cart: user.cart,
   });
 });
 
@@ -498,27 +514,27 @@ export const updateProductQuantity = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Not enough stock available", 400));
   }
 
-  const user = await User.findById(req.user._id);
-  const cartItem = user.cart.find(
-    (item) => item.product.toString() === productId
-  );
+  const user = req.user._id;
+  const cartItem = await Cart.findOne({ user_id: user, product: productId });
 
   if (!cartItem) {
     return next(new ErrorHandler("Product not found in cart", 404));
   }
 
   cartItem.quantity = quantity;
-  await user.save();
-  res
-    .status(200)
-    .json({ success: true, message: "Cart item updated", cart: user.cart });
+  await cartItem.save();
+
+  res.status(200).json({ success: true, message: "Cart item updated" });
 });
 
 // Get user cart
 export const getCart = catchAsyncError(async (req, res, next) => {
-  const user = await User.findById(req.user._id).populate("cart.product");
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+  const user = req.user._id;
+  const cartItems = await Cart.find({ user_id: user }).populate("product");
+
+  if (!cartItems) {
+    return next(new ErrorHandler("Cart not found", 404));
   }
-  res.status(200).json({ success: true, cart: user.cart });
+
+  res.status(200).json({ success: true, cart: cartItems });
 });

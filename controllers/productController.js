@@ -109,6 +109,7 @@ export const createProductController = catchAsyncError(
       description,
       story,
       otherDetails,
+      productId,
       images:
         uploadedImages?.length > 0
           ? uploadedImages
