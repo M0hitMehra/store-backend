@@ -59,7 +59,7 @@ const productSchema = new mongoose.Schema(
     variants: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Variant",
+        ref: "Product",
       },
     ],
 
