@@ -12,7 +12,16 @@ export const getProductController = catchAsyncError(async (req, res, next) => {
     .populate("brand")
     .populate("color")
     .populate("size")
-    .populate("category");
+    .populate("category")
+    .populate({
+      path: "variants",
+      select: "_id images category size color",
+      populate: [
+        { path: "category", select: "_id name" },
+        { path: "size", select: "_id name" },
+        { path: "color", select: "_id name" },
+      ],
+    });
 
   if (!product) {
     return next(new ErrorHandler("Product not found", 404));
@@ -52,6 +61,7 @@ export const createProductController = catchAsyncError(
       images,
       productId,
       category,
+      variants
     } = req.body;
 
     // Validate required fields
@@ -110,6 +120,7 @@ export const createProductController = catchAsyncError(
       story,
       otherDetails,
       productId,
+      variants,
       images:
         uploadedImages?.length > 0
           ? uploadedImages
@@ -128,6 +139,7 @@ export const createProductController = catchAsyncError(
   }
 );
 
+// get all products
 export const getAllProduct = catchAsyncError(async (req, res, next) => {
   const {
     page = 1,
@@ -197,6 +209,7 @@ export const getAllProduct = catchAsyncError(async (req, res, next) => {
   });
 });
 
+// delete a product
 export const deleteProduct = catchAsyncError(async (req, res, next) => {
   const { id } = req.params;
 
@@ -234,6 +247,7 @@ export const deleteProduct = catchAsyncError(async (req, res, next) => {
   });
 });
 
+// update a product
 export const updateProduct = catchAsyncError(async (req, res, next) => {
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_NAME,
@@ -282,3 +296,38 @@ export const updateProduct = catchAsyncError(async (req, res, next) => {
     product: updatedProduct,
   });
 });
+
+// get product for size and color selection
+// Get products by productId, color._id, and size._id
+export const getProductsForVariants = catchAsyncError(
+  async (req, res, next) => {
+    const { productId, colorId, sizeId } = req.body;
+
+    if (!productId || !colorId || !sizeId) {
+      return next(
+        new ErrorHandler("ProductId, Color ID, and Size ID are required", 400)
+      );
+    }
+
+    const products = await Product.find({
+      productId,
+      color: colorId,
+      size: sizeId,
+    })
+      .populate("brand")
+      .populate("color")
+      .populate("size")
+      .populate("category");
+
+    if (!products || products.length === 0) {
+      return next(
+        new ErrorHandler("No products found matching the criteria", 404)
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      products,
+    });
+  }
+);

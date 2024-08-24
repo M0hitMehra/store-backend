@@ -11,25 +11,58 @@ const productSchema = new mongoose.Schema(
       required: true,
       default: "N/A",
     },
-    description: {
-      type: String,
+    price: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+    },
+    stock: {
+      type: Number,
+      required: [true, "Please enter stocks"],
+      default: 1,
+      min: 0,
+    },
+    images: [
+      {
+        public_id: String,
+        url: {
+          type: String,
+          default:
+            "https://res.cloudinary.com/mohit786/image/upload/v1693677254/cv9gdgz150vtoimcga0e.jpg",
+        },
+      },
+    ],
+    brand: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Brand",
+      required: true,
+    },
+    color: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Color",
+      required: true,
+    },
+    size: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Size",
+      required: true,
     },
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
     },
-    brand: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Brand",
-      required: true,
+    description: {
+      type: String,
     },
     variants: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Variant",
+        ref: "Product",
       },
     ],
+
     otherDetails: {
       productStory: {
         title: String,
@@ -43,7 +76,7 @@ const productSchema = new mongoose.Schema(
         title: String,
         description: String,
       },
-      countryOrigin: {
+      countoryOrigin: {
         title: String,
         description: String,
       },
