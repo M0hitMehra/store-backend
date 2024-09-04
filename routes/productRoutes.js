@@ -23,6 +23,6 @@ router
   .route("/product/update/:id")
   .put(isAuthenticated, authorizeRoles("admin"), updateProduct);
 
-router.route("/product/variants").post( getProductsForVariants);
+router.route("/product/variants").post(getProductsForVariants);
 
 export default router;

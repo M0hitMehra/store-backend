@@ -61,7 +61,7 @@ export const createProductController = catchAsyncError(
       images,
       productId,
       category,
-      variants
+      variants,
     } = req.body;
 
     // Validate required fields
