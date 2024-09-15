@@ -10,40 +10,84 @@ import { v2 as cloudinary } from "cloudinary";
 import Cart from "../models/Cart.js";
 import Wishlist from "../models/Wishlist.js";
 import RecentlyVisited from "../models/RecentlyVisited.js";
+import Address from "../models/Address.js";
 
 // Create a new user
 export const createUser = catchAsyncError(async (req, res, next) => {
-  const { firstName, lastName, email, password } = req.body;
+  const {
+    firstName,
+    lastName,
+    email,
+    password,
+    phone,
+    dateOfBirth,
+    address: { street, city, state, postalCode, country },
+  } = req.body;
 
-  if (!firstName || !lastName || !email || !password) {
+  // Check for required fields
+  if (
+    !firstName ||
+    !lastName ||
+    !email ||
+    !password ||
+    !phone ||
+    !dateOfBirth ||
+    !street ||
+    !city ||
+    !state ||
+    !postalCode ||
+    !country
+  ) {
     return next(new ErrorHandler("Please fill all the required fields", 404));
   }
 
-  const doesUserExist = await User.findOne({ email: email });
+  // Check if the user already exists
+  const doesUserExist = await User.findOne({ email });
 
   if (doesUserExist) {
     return next(new ErrorHandler("User already exists", 400));
   }
 
+  // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+  // Prepare user data
   req.body.otp = otp;
   req.body.otp_expiry = new Date(
     Date.now() + process.env.OTP_EXPIRE * 60 * 1000
   );
 
-  const user = await User.create(req.body);
+  // Create new user instance
+  const user = new User({
+    firstName,
+    lastName,
+    email,
+    password,
+    phone,
+    dateOfBirth,
+    otp,
+    otp_expiry: req.body.otp_expiry,
+    address: {
+      street,
+      city,
+      state,
+      postalCode,
+      country,
+    },
+  });
 
+  // Send OTP email for account verification
   sendMail(
     email,
     "Verify Your Account",
-    `Your OTP is ${otp} if you haven't requested for this then ignore this message`
+    `Your OTP is ${otp}. If you haven't requested this, please ignore this message.`
   );
 
-  // images
-
+  // Save user to the database
   await user.save();
-  sendToken(res, user, 201, "Opt Sent please verify your account");
+
+  // Send token to the client
+  sendToken(res, user, 201, "OTP sent. Please verify your account.");
 });
 
 export const verify = catchAsyncError(async (req, res, next) => {
@@ -65,7 +109,7 @@ export const verify = catchAsyncError(async (req, res, next) => {
 // get a user
 export const getUser = catchAsyncError(async (req, res, next) => {
   const _id = req.user._id;
-  const user = await User.findById(_id);
+  const user = await User.findById(_id).populate("address");
 
   sendToken(res, user, 200, `Welcome back ${user.firstName}`);
 });
@@ -103,30 +147,70 @@ export const logout = catchAsyncError(async (req, res, next) => {
   });
 });
 
-// update profile
 export const updateProfile = catchAsyncError(async (req, res, next) => {
-  const { firstName, lastName, address, phone } = req.body;
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] Update Profile API called`);
+
+  const { firstName, lastName, phone, dateOfBirth, address } = req.body;
+
+  console.log(`[${timestamp}] Request Body:`, {
+    firstName,
+    lastName,
+    phone,
+    dateOfBirth,
+    address,
+  });
 
   const data = {};
   if (firstName) data.firstName = firstName;
   if (lastName) data.lastName = lastName;
-  if (address) data.address = address;
   if (phone) data.phone = phone;
+  if (dateOfBirth) data.dateOfBirth = dateOfBirth;
 
-  const userId = req.user._id;
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`[${timestamp}] User not found: ${userId}`);
+      return next(new ErrorHandler("User not found", 404));
+    }
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+    // Update addresses
+    if (address && Array.isArray(address)) {
+      console.log(`[${timestamp}] Processing addresses`);
+      for (const addr of address) {
+        if (addr?._id) {
+          console.log(`[${timestamp}] Updating address with ID: ${addr._id}`);
+          await Address.findByIdAndUpdate(addr._id, addr, {
+            new: true,
+            runValidators: true,
+            useFindAndModify: false,
+          });
+        } else {
+          console.log(`[${timestamp}] Creating new address for user: ${userId}`);
+          const newAddress = await Address.create({ ...addr, user: userId });
+          user.address.push(newAddress._id);
+          await user.save();
+        }
+      }
+    }
+
+    // Update user profile fields
+    console.log(`[${timestamp}] Updating user profile for user: ${userId}`);
+    const updatedUser = await User.findByIdAndUpdate(userId, data, {
+      new: true,
+      runValidators: true,
+      useFindAndModify: false,
+    });
+
+    await updatedUser.save();
+    console.log(`[${timestamp}] User profile updated successfully: ${userId}`);
+
+    res.status(200).json({ success: true, user: updatedUser });
+  } catch (error) {
+    console.log(`[${timestamp}] Error occurred:`, error);
+    next(error);
   }
-
-  const updatedUser = await User.findByIdAndUpdate(userId, data, {
-    new: true,
-    runValidators: true,
-    useFindAndModify: false,
-  });
-
-  res.status(200).json({ success: true, user: updatedUser });
 });
 
 // update profile image
@@ -432,24 +516,26 @@ export const saveRecentlyVisitedProduct = catchAsyncError(
 );
 
 // get all recently visited products
-export const getRecentlyVisitedProducts = catchAsyncError(async (req, res, next) => {
-  const userId = req.user._id;
-  const limit = parseInt(req.query.limit) || 10;
+export const getRecentlyVisitedProducts = catchAsyncError(
+  async (req, res, next) => {
+    const userId = req.user._id;
+    const limit = parseInt(req.query.limit) || 10;
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+    const user = await User.findById(userId);
+    if (!user) {
+      return next(new ErrorHandler("User not found", 404));
+    }
+
+    const recentlyVisited = await RecentlyVisited.find({ user: userId })
+      .sort({ visitedAt: -1 })
+      .limit(limit)
+      .populate("product");
+
+    const products = recentlyVisited.map((item) => item.product);
+
+    res.status(200).json({ success: true, recentlyVisited: products });
   }
-
-  const recentlyVisited = await RecentlyVisited.find({ user: userId })
-    .sort({ visitedAt: -1 })
-    .limit(limit)
-    .populate("product");
-
-  const products = recentlyVisited.map(item => item.product);
-
-  res.status(200).json({ success: true, recentlyVisited: products });
-});
+);
 
 // Add to CARt
 export const addToCart = catchAsyncError(async (req, res, next) => {

@@ -155,6 +155,7 @@ export const getAllProduct = catchAsyncError(async (req, res, next) => {
 
   const query = {};
 
+  // Handle text-based search
   if (search) {
     if (search.length < 3) {
       return next(new ErrorHandler("Please enter at least 3 characters", 400));
@@ -162,51 +163,52 @@ export const getAllProduct = catchAsyncError(async (req, res, next) => {
     query.$or = [
       { title: { $regex: search, $options: "i" } },
       { description: { $regex: search, $options: "i" } },
-      { price: parseFloat(search) ? parseFloat(search) : undefined },
-      { "color.name": { $regex: search, $options: "i" } },
-      // Add more fields as needed
+      // "color.name" might not work with $regex, ensure "color" is populated and indexed as needed
+      { "otherDetails.productStory.title": { $regex: search, $options: "i" } },
+      {
+        "otherDetails.productDetails.description": {
+          $regex: search,
+          $options: "i",
+        },
+      },
     ];
   }
 
-  if (category) {
-    query.category = category;
-  }
-
-  if (brand) {
-    query.brand = brand;
-  }
-
-  if (color) {
-    query.color = color;
-  }
-
-  if (size) {
-    query.size = { $in: size.split(",") }; // Support multiple sizes
-  }
+  // Handle category, brand, color, size filtering
+  if (category) query.category = category;
+  if (brand) query.brand = brand;
+  if (color) query.color = color;
+  if (size) query.size = size; // Assuming size is a single value, adjust if needed.
 
   // Determine sort order
   const sortOrder = order === "desc" ? -1 : 1;
 
-  const products = await Product.find(query)
-    .populate("brand")
-    .populate("color")
-    .populate("size")
-    .populate("category")
-    .sort({ [sort]: sortOrder }) // Apply sorting
-    .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+  try {
+    const products = await Product.find(query)
+      .populate("brand")
+      .populate("color")
+      .populate("size")
+      .populate("category")
+      .sort({ [sort]: sortOrder })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
 
-  const total = await Product.countDocuments(query);
+    const total = await Product.countDocuments(query);
 
-  res.status(200).json({
-    success: true,
-    products,
-    pagination: {
-      total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-    },
-  });
+    res.status(200).json({
+      success: true,
+      products,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+      },
+    });
+  } catch (error) {
+    return next(
+      new ErrorHandler("An error occurred while fetching products", 500)
+    );
+  }
 });
 
 // delete a product
