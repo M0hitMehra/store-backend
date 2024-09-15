@@ -9,25 +9,35 @@ const userSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+
     lastName: {
       type: String,
       required: true,
     },
+
     email: {
       type: String,
       required: true,
       unique: true,
     },
+
     verified: {
       type: Boolean,
       default: false,
     },
+
     password: {
       type: String,
       required: true,
       minlength: [8, "Password must be at least 8 characters long"],
       select: false,
     },
+
+    dateOfBirth: {
+      type: Date,
+      required: true,
+    },
+
     avatar: {
       public_id: String,
       url: {
@@ -36,23 +46,24 @@ const userSchema = mongoose.Schema(
           "https://res.cloudinary.com/mohit786/image/upload/v1693677254/cv9gdgz150vtoimcga0e.jpg",
       },
     },
+
     phone: {
       type: String,
+      required: true,
     },
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      postalCode: String,
-      country: String,
-    },
+
+    address: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Address",
+        required: true,
+      },
+    ],
+
     role: {
       type: String,
       default: "user",
     },
-
-    
-
 
     wishlist: [
       {
@@ -60,6 +71,7 @@ const userSchema = mongoose.Schema(
         ref: "Product",
       },
     ],
+
     recentlyVisited: [
       {
         product: {
@@ -72,6 +84,7 @@ const userSchema = mongoose.Schema(
         },
       },
     ],
+
     cart: [
       {
         product: {
@@ -87,9 +100,19 @@ const userSchema = mongoose.Schema(
       },
     ],
 
+    paymentMethods: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PaymentMethod",
+      },
+    ],
 
-
-
+    recentOrders: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order",
+      },
+    ],
     otp: Number,
     otp_expiry: Date,
     resetPasswordToken: String,
@@ -98,6 +121,7 @@ const userSchema = mongoose.Schema(
   { timestamps: true }
 );
 
+// Password hash middleware
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt();
@@ -106,19 +130,20 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
+// JWT token generation
 userSchema.methods.getJWTToken = function () {
   return jwt.sign({ _id: this._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000,
   });
 };
 
+// Compare password
 userSchema.methods.comparePassword = async function (newpassword) {
-  const match = await bcrypt.compare(newpassword, this.password);
-  return match;
+  return await bcrypt.compare(newpassword, this.password);
 };
 
-userSchema.methods.getResetPasswordToken = async function (password) {
-  //Generating  Token
+// Password reset token generation
+userSchema.methods.getResetPasswordToken = async function () {
   const resetToken = crypto.randomBytes(20).toString("hex");
 
   this.resetPasswordToken = crypto
