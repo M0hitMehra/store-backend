@@ -15,7 +15,7 @@ const categorySchema = new mongoose.Schema(
     children: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Category",
+        ref: "SubCategory", // Make sure it's referencing the correct model
       },
     ],
   },

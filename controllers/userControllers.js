@@ -187,7 +187,9 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
             useFindAndModify: false,
           });
         } else {
-          console.log(`[${timestamp}] Creating new address for user: ${userId}`);
+          console.log(
+            `[${timestamp}] Creating new address for user: ${userId}`
+          );
           const newAddress = await Address.create({ ...addr, user: userId });
           user.address.push(newAddress._id);
           await user.save();

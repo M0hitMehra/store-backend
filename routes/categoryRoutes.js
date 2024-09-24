@@ -16,7 +16,7 @@ router.route("/getAll").get(getAllCategoryController);
 
 router.route("/create").post(isAuthenticated, createCategoryController);
 
-router.route("/update").put(isAuthenticated, updateCategoryController);
+router.route("/update/:id").put(isAuthenticated, updateCategoryController);
 
 router.route("/delete/:id").delete(isAuthenticated, deleteCategoryController);
 
