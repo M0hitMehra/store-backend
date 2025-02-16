@@ -4,23 +4,25 @@ import ErrorHandler from "../utils/errorHandlers.js";
 import { v2 as cloudinary } from "cloudinary";
 import { mediaUpload } from "../utils/mediaUpload.js";
 import mongoose from "mongoose";
+import { Variant } from "../models/Variants.js";
 
 // Get single product
 export const getProductController = catchAsyncError(async (req, res, next) => {
-  req.body._id = req.params.id;
-  const product = await Product.findById(req.body)
-    .populate("brand")
-    .populate("color")
-    .populate("size")
-    .populate("category")
+  const productId = req.params.id;
+  const product = await Product.findById(productId)
+    .populate("brand", "name")
+    .populate("category", "name")
     .populate({
       path: "variants",
-      select: "_id images category size color",
       populate: [
-        { path: "category", select: "_id name" },
-        { path: "size", select: "_id name" },
-        { path: "color", select: "_id name" },
+        {
+          path: "color",
+        },
+        {
+          path: "size",
+        },
       ],
+      select: "_id color size price stock images",
     });
 
   if (!product) {
@@ -50,13 +52,9 @@ export const createProductController = catchAsyncError(
 
     const {
       title,
-      price,
       stock,
       brand,
-      color,
-      size,
       description,
-      story,
       otherDetails,
       images,
       productId,
@@ -65,7 +63,6 @@ export const createProductController = catchAsyncError(
     } = req.body;
 
     // Validate required fields
-
     if (!productId) {
       return next(new ErrorHandler("Product ID must be provided", 400));
     }
@@ -74,24 +71,12 @@ export const createProductController = catchAsyncError(
       return next(new ErrorHandler("Title is required", 400));
     }
 
-    if (!price) {
-      return next(new ErrorHandler("Price is required", 400));
-    }
-
     if (!stock) {
       return next(new ErrorHandler("Stock is required", 400));
     }
 
     if (!brand) {
       return next(new ErrorHandler("Brand is required", 400));
-    }
-
-    if (!color) {
-      return next(new ErrorHandler("Colors are required", 400));
-    }
-
-    if (!size) {
-      return next(new ErrorHandler("Sizes are required", 400));
     }
 
     if (!category) {
@@ -111,18 +96,13 @@ export const createProductController = catchAsyncError(
 
     const product = await Product.create({
       title,
-      price,
       stock,
       brand,
-      color,
-      size,
       description,
-      story,
       otherDetails,
       productId,
-      variants,
       images:
-        uploadedImages?.length > 0
+        uploadedImages.length > 0
           ? uploadedImages
           : [
               {
@@ -131,6 +111,18 @@ export const createProductController = catchAsyncError(
             ],
       category,
     });
+
+    // Create variants
+    if (variants && variants.length > 0) {
+      for (const variantData of variants) {
+        const variant = await Variant.create({
+          ...variantData,
+          product: product._id,
+        });
+        product.variants.push(variant._id);
+      }
+      await product.save();
+    }
 
     res.status(201).json({
       success: true,
@@ -147,26 +139,49 @@ export const getAllProduct = catchAsyncError(async (req, res, next) => {
     search = "",
     category,
     brand,
-    color,
-    size,
-    sort = "createdAt", // Default sort field
-    order = "asc", // Default sort order
+    colors, // Now accepts array of color IDs
+    sizes, // Now accepts array of size IDs
+    minPrice,
+    maxPrice,
+    sort = "createdAt",
+    order = "asc",
   } = req.query;
 
   const query = {};
 
-  // Handle text-based search
+  // Handle text-based search with improved fields
   if (search) {
     if (search.length < 3) {
       return next(new ErrorHandler("Please enter at least 3 characters", 400));
     }
     query.$or = [
+      { productId: { $regex: search, $options: "i" } },
       { title: { $regex: search, $options: "i" } },
       { description: { $regex: search, $options: "i" } },
-      // "color.name" might not work with $regex, ensure "color" is populated and indexed as needed
       { "otherDetails.productStory.title": { $regex: search, $options: "i" } },
       {
+        "otherDetails.productStory.description": {
+          $regex: search,
+          $options: "i",
+        },
+      },
+      {
+        "otherDetails.productDetails.title": { $regex: search, $options: "i" },
+      },
+      {
         "otherDetails.productDetails.description": {
+          $regex: search,
+          $options: "i",
+        },
+      },
+      {
+        "otherDetails.manufacturAddress.description": {
+          $regex: search,
+          $options: "i",
+        },
+      },
+      {
+        "otherDetails.countoryOrigin.description": {
           $regex: search,
           $options: "i",
         },
@@ -174,26 +189,183 @@ export const getAllProduct = catchAsyncError(async (req, res, next) => {
     ];
   }
 
-  // Handle category, brand, color, size filtering
-  if (category) query.category = category;
-  if (brand) query.brand = brand;
-  if (color) query.color = color;
-  if (size) query.size = size; // Assuming size is a single value, adjust if needed.
+  // Handle basic filters
+  if (category) {
+    query.category = mongoose.Types.ObjectId.isValid(category)
+      ? new mongoose.Types.ObjectId(category)
+      : null;
+  }
 
-  // Determine sort order
+  if (brand) {
+    query.brand = mongoose.Types.ObjectId.isValid(brand)
+      ? new mongoose.Types.ObjectId(brand)
+      : null;
+  }
+
+  // Handle variant-based filters
+  const variantFilters = [];
+
+  // Handle color filter
+  if (colors) {
+    const colorArray = Array.isArray(colors) ? colors : [colors];
+    if (colorArray.length > 0) {
+      variantFilters.push({
+        variants: {
+          $elemMatch: {
+            color: {
+              $in: colorArray.map((c) =>
+                mongoose.Types.ObjectId.isValid(c)
+                  ? new mongoose.Types.ObjectId(c)
+                  : null
+              ),
+            },
+          },
+        },
+      });
+    }
+  }
+
+  // Handle size filter
+  if (sizes) {
+    const sizeArray = Array.isArray(sizes) ? sizes : [sizes];
+    if (sizeArray.length > 0) {
+      variantFilters.push({
+        variants: {
+          $elemMatch: {
+            size: {
+              $in: sizeArray.map((s) =>
+                mongoose.Types.ObjectId.isValid(s)
+                  ? new mongoose.Types.ObjectId(s)
+                  : null
+              ),
+            },
+          },
+        },
+      });
+    }
+  }
+
+  // Handle price range filter
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    const priceFilter = {
+      variants: {
+        $elemMatch: {
+          price: {},
+        },
+      },
+    };
+
+    if (minPrice !== undefined) {
+      priceFilter.variants.$elemMatch.price.$gte = Number(minPrice);
+    }
+
+    if (maxPrice !== undefined) {
+      priceFilter.variants.$elemMatch.price.$lte = Number(maxPrice);
+    }
+
+    variantFilters.push(priceFilter);
+  }
+
+  // Combine all filters
+  if (variantFilters.length > 0) {
+    query.$and = variantFilters;
+  }
+
+  // Determine sort order and field
   const sortOrder = order === "desc" ? -1 : 1;
+  const sortOptions = {};
+
+  // Handle different sort fields
+  switch (sort) {
+    case "price":
+      // Sort by the minimum price of variants
+      sortOptions["variants.price"] = sortOrder;
+      break;
+    case "stock":
+      // Sort by total stock across variants
+      sortOptions["stock"] = sortOrder;
+      break;
+    default:
+      sortOptions[sort] = sortOrder;
+  }
 
   try {
-    const products = await Product.find(query)
-      .populate("brand")
-      .populate("color")
-      .populate("size")
-      .populate("category")
-      .sort({ [sort]: sortOrder })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+    // Build the aggregation pipeline
+    const pipeline = [
+      { $match: query },
+      {
+        $lookup: {
+          from: "brands",
+          localField: "brand",
+          foreignField: "_id",
+          as: "brand",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $lookup: {
+          from: "variants",
+          localField: "variants",
+          foreignField: "_id",
+          as: "variants",
+          pipeline: [
+            {
+              $lookup: {
+                from: "colors",
+                localField: "color",
+                foreignField: "_id",
+                as: "color",
+              },
+            },
+            {
+              $lookup: {
+                from: "sizes",
+                localField: "size",
+                foreignField: "_id",
+                as: "size",
+              },
+            },
+            {
+              $addFields: {
+                color: { $arrayElemAt: ["$color", 0] },
+                size: { $arrayElemAt: ["$size", 0] },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          brand: { $arrayElemAt: ["$brand", 0] },
+          category: { $arrayElemAt: ["$category", 0] },
+          minPrice: { $min: "$variants.price" },
+          maxPrice: { $max: "$variants.price" },
+          totalStock: { $sum: "$variants.stock" },
+        },
+      },
+      { $sort: sortOptions },
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          products: [
+            { $skip: (parseInt(page) - 1) * parseInt(limit) },
+            { $limit: parseInt(limit) },
+          ],
+        },
+      },
+    ];
 
-    const total = await Product.countDocuments(query);
+    const result = await Product.aggregate(pipeline);
+
+    const products = result[0].products;
+    const total = result[0].metadata[0]?.total || 0;
 
     res.status(200).json({
       success: true,
@@ -202,9 +374,11 @@ export const getAllProduct = catchAsyncError(async (req, res, next) => {
         total,
         page: parseInt(page),
         limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
       },
     });
   } catch (error) {
+    console.error("Error in getAllProduct:", error);
     return next(
       new ErrorHandler("An error occurred while fetching products", 500)
     );
@@ -233,12 +407,23 @@ export const deleteProduct = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Product not found", 404));
   }
 
-  // Delete images from Cloudinary
-  const deleteImagesPromises = product.images.map((image) => {
-    return cloudinary.uploader.destroy(image.public_id);
-  });
+  console.log("Product images:", product?.images);
 
-  await Promise.all(deleteImagesPromises);
+  if (product.images && product.images?.length > 0) {
+    // Delete images from Cloudinary
+    const deleteImagesPromises = product.images.map((image) => {
+      if (image?.public_id) {
+        return cloudinary.uploader.destroy(image.public_id);
+      }
+    });
+    await Promise.all(deleteImagesPromises);
+  }
+
+  const variantsIds = product?.variants?.map((v) => v._id);
+
+  for (let variant in variantsIds) {
+    await Variant.findByIdAndDelete(variant);
+  }
 
   // Delete the product from the database
   await Product.findByIdAndDelete(id);
@@ -251,52 +436,216 @@ export const deleteProduct = catchAsyncError(async (req, res, next) => {
 
 // update a product
 export const updateProduct = catchAsyncError(async (req, res, next) => {
+  console.time("Total updateProduct Execution Time");
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
+  console.time("Initialization Time");
   const { id } = req.params;
   const updateData = req.body;
 
-  // Check if the id is a valid MongoDB ObjectId
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return next(new ErrorHandler("Invalid product ID", 400));
   }
 
-  const product = await Product.findById(id);
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  console.timeEnd("Initialization Time");
 
-  if (!product) {
-    return next(new ErrorHandler("Product not found", 404));
-  }
+  try {
+    console.time("Find Product Execution Time");
+    const product = await Product.findById(id).populate("variants");
+    console.timeEnd("Find Product Execution Time");
 
-  // Update images if provided
-  if (updateData.images) {
-    // Delete old images from Cloudinary
-    const deleteImagesPromises = product.images.map((image) => {
-      return cloudinary.uploader.destroy(image.public_id);
+    if (!product) {
+      return next(new ErrorHandler("Product not found", 404));
+    }
+
+    // Main Product Images Handling
+    if (updateData.images?.length > 0) {
+      console.time("Main Images Processing Time");
+      const deleteImagesPromises = product.images.map((image) => {
+        if (image.public_id) {
+          return cloudinary.uploader.destroy(image.public_id);
+        }
+      });
+      await Promise.all(deleteImagesPromises);
+
+      const uploadImagesPromises = updateData.images.map(async (image) => {
+        if (image.url.startsWith("data:")) {
+          const result = await cloudinary.uploader.upload(image.url);
+          return { public_id: result.public_id, url: result.secure_url };
+        }
+        return image;
+      });
+      updateData.images = await Promise.all(uploadImagesPromises);
+      console.timeEnd("Main Images Processing Time");
+    }
+
+    // Variants Handling
+    if (updateData.variants) {
+      console.time("Variants Processing Time");
+      const existingVariantIds = product.variants.map((v) => v._id.toString());
+      const updatedVariantIds = updateData.variants
+        .filter((v) => v._id)
+        .map((v) => v._id.toString());
+
+      const variantsToDelete = existingVariantIds.filter(
+        (id) => !updatedVariantIds.includes(id)
+      );
+
+      for (const variantId of variantsToDelete) {
+        console.time(`Variant Deletion for ID: ${variantId}`);
+        const variant = await Variant.findById(variantId);
+        if (variant?.images?.length) {
+          const deleteVariantImagesPromises = variant.images.map((image) => {
+            if (image.public_id) {
+              return cloudinary.uploader.destroy(image.public_id);
+            }
+          });
+          await Promise.all(deleteVariantImagesPromises);
+        }
+        await Variant.findByIdAndDelete(variantId);
+        console.timeEnd(`Variant Deletion for ID: ${variantId}`);
+      }
+
+      const variantPromises = updateData.variants.map(async (variantData) => {
+        console.time(`Variant Processing for ID: ${variantData._id || "New"}`);
+        if (variantData._id) {
+          const variant = await Variant.findById(variantData._id);
+
+          if (variantData.images?.length > 0) {
+            const deleteVariantImagesPromises = variant.images.map((image) => {
+              if (image.public_id) {
+                return cloudinary.uploader.destroy(image.public_id);
+              }
+            });
+            await Promise.all(deleteVariantImagesPromises);
+
+            const uploadVariantImagesPromises = variantData.images.map(
+              async (image) => {
+                if (image.url.startsWith("data:")) {
+                  const result = await cloudinary.uploader.upload(image.url);
+                  return {
+                    public_id: result.public_id,
+                    url: result.secure_url,
+                  };
+                }
+                return image;
+              }
+            );
+            variantData.images = await Promise.all(uploadVariantImagesPromises);
+          }
+
+          const updatedVariant = await Variant.findByIdAndUpdate(
+            variantData._id,
+            { ...variantData, product: id },
+            { new: true, runValidators: true, session }
+          );
+          console.timeEnd(
+            `Variant Processing for ID: ${variantData._id || "New"}`
+          );
+          return updatedVariant;
+        } else {
+          if (variantData.images?.length > 0) {
+            const uploadVariantImagesPromises = variantData.images.map(
+              async (image) => {
+                if (image.url.startsWith("data:")) {
+                  const result = await cloudinary.uploader.upload(image.url);
+                  return {
+                    public_id: result.public_id,
+                    url: result.secure_url,
+                  };
+                }
+                return image;
+              }
+            );
+            variantData.images = await Promise.all(uploadVariantImagesPromises);
+          }
+
+          const newVariant = await Variant.create(
+            [{ ...variantData, product: id }],
+            {
+              session,
+            }
+          );
+          console.timeEnd(
+            `Variant Processing for ID: ${variantData._id || "New"}`
+          );
+          return newVariant;
+        }
+      });
+
+      const updatedVariants = await Promise.all(variantPromises);
+      updateData.variants = updatedVariants.map((v) => v?.map((e) => e?._id));
+    }
+
+    // Update Product Details
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      {
+        ...updateData,
+        variants: updateData?.variants,
+        otherDetails: {
+          productStory: {
+            title: updateData.otherDetails?.productStory?.title || "",
+            description:
+              updateData.otherDetails?.productStory?.description || "",
+          },
+          productDetails: {
+            title: updateData.otherDetails?.productDetails?.title || "",
+            description:
+              updateData.otherDetails?.productDetails?.description || [],
+          },
+          manufacturAddress: {
+            title: updateData.otherDetails?.manufacturAddress?.title || "",
+            description:
+              updateData.otherDetails?.manufacturAddress?.description || "",
+          },
+          countoryOrigin: {
+            title: updateData.otherDetails?.countoryOrigin?.title || "",
+            description:
+              updateData.otherDetails?.countoryOrigin?.description || "",
+          },
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+        session,
+      }
+    ).populate([
+      "brand",
+      "category",
+      {
+        path: "variants",
+        populate: ["color", "size"],
+      },
+    ]);
+    console.timeEnd("Product Update Execution Time");
+
+    // Commit Transaction
+    console.time("Commit Transaction Time");
+    await session.commitTransaction();
+    console.timeEnd("Commit Transaction Time");
+
+    res.status(200).json({
+      success: true,
+      product: updatedProduct,
     });
-    await Promise.all(deleteImagesPromises);
-
-    // Upload new images to Cloudinary
-    const uploadImagesPromises = updateData.images.map(async (image) => {
-      const result = await cloudinary.uploader.upload(image.url);
-      return { public_id: result.public_id, url: result.secure_url };
-    });
-    updateData.images = await Promise.all(uploadImagesPromises);
+  } catch (error) {
+    console.error("Error in updateProduct:", error);
+    await session.abortTransaction();
+    return next(new ErrorHandler(error.message, 500));
+  } finally {
+    console.time("Session End Time");
+    session.endSession();
+    console.timeEnd("Session End Time");
+    console.timeEnd("Total updateProduct Execution Time");
   }
-
-  // Update product details
-  const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
-    new: true,
-    runValidators: true,
-  });
-
-  res.status(200).json({
-    success: true,
-    product: updatedProduct,
-  });
 });
 
 // get product for size and color selection

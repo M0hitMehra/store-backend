@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import dummy from "mongoose-dummy";
 
 const productSchema = new mongoose.Schema(
   {
@@ -10,12 +11,6 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       default: "N/A",
-    },
-    price: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
     },
     stock: {
       type: Number,
@@ -38,16 +33,6 @@ const productSchema = new mongoose.Schema(
       ref: "Brand",
       required: true,
     },
-    color: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Color",
-      required: true,
-    },
-    size: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Size",
-      required: true,
-    },
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
@@ -59,10 +44,9 @@ const productSchema = new mongoose.Schema(
     variants: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
+        ref: "Variant",
       },
     ],
-
     otherDetails: {
       productStory: {
         title: String,
