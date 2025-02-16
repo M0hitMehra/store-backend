@@ -50,6 +50,8 @@ import colorRoutes from "./routes/colorRoutes.js";
 import sizeRoutes from "./routes/sizeRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import algorithmRoutes from "./routes/algorithmRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 
 app.use("/api/v1", productRoutes);
 app.use("/api/v1/brand", brandRoutes);
@@ -57,6 +59,8 @@ app.use("/api/v1/color", colorRoutes);
 app.use("/api/v1/size", sizeRoutes);
 app.use("/api/v1/category", categoryRoutes);
 app.use("/api/v1/auth", userRoutes);
+app.use("/api/v1/algorithm", algorithmRoutes);
+app.use("/api/v1/order", orderRoutes);
 
 app.get("/", (req, res) => {
   res.send(

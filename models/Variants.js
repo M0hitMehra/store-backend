@@ -31,7 +31,8 @@ const variantSchema = new mongoose.Schema({
       public_id: String,
       url: {
         type: String,
-        default: "https://res.cloudinary.com/mohit786/image/upload/v1693677254/cv9gdgz150vtoimcga0e.jpg",
+        default:
+          "https://res.cloudinary.com/mohit786/image/upload/v1693677254/cv9gdgz150vtoimcga0e.jpg",
       },
     },
   ],

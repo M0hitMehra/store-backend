@@ -10,7 +10,9 @@
     "express-fileupload": "^1.4.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.2.3",
-    "nodemailer": "^6.9.13"
+    "mongoose-dummy": "^1.0.8",
+    "nodemailer": "^6.9.13",
+    "nodemon": "^3.1.9"
   },
   "scripts": {
     "start": "node server.js",
