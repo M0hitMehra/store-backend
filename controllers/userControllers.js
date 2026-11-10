@@ -22,7 +22,7 @@ export const createUser = catchAsyncError(async (req, res, next) => {
     password,
     phone,
     dateOfBirth,
-    address: { street, city, state, postalCode, country },
+    // address: { street, city, state, postalCode, country },
   } = req.body;
 
   // Check for required fields
