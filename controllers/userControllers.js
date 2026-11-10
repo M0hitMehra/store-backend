@@ -26,21 +26,21 @@ export const createUser = catchAsyncError(async (req, res, next) => {
   } = req.body;
 
   // Check for required fields
-  if (
-    !firstName ||
-    !lastName ||
-    !email ||
-    !password ||
-    !phone ||
-    !dateOfBirth ||
-    !street ||
-    !city ||
-    !state ||
-    !postalCode ||
-    !country
-  ) {
-    return next(new ErrorHandler("Please fill all the required fields", 404));
-  }
+  // if (
+  //   !firstName ||
+  //   !lastName ||
+  //   !email ||
+  //   !password ||
+  //   !phone ||
+  //   !dateOfBirth ||
+  //   !street ||
+  //   !city ||
+  //   !state ||
+  //   !postalCode ||
+  //   !country
+  // ) {
+  //   return next(new ErrorHandler("Please fill all the required fields", 404));
+  // }
 
   // Check if the user already exists
   const doesUserExist = await User.findOne({ email });
@@ -68,13 +68,13 @@ export const createUser = catchAsyncError(async (req, res, next) => {
     dateOfBirth,
     otp,
     otp_expiry: req.body.otp_expiry,
-    address: {
-      street,
-      city,
-      state,
-      postalCode,
-      country,
-    },
+    // address: {
+    //   street,
+    //   city,
+    //   state,
+    //   postalCode,
+    //   country,
+    // },
   });
 
   // Send OTP email for account verification
