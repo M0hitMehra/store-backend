@@ -60,8 +60,8 @@ export const createUser = catchAsyncError(async (req, res, next) => {
     lastName,
     email,
     password,
-    phone:"",
-    dateOfBirth:"",
+    phone,
+    dateOfBirth,
     otp,
     otp_expiry: req.body.otp_expiry,
     address 
