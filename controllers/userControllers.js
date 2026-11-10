@@ -26,17 +26,17 @@ export const createUser = catchAsyncError(async (req, res, next) => {
   } = req.body;
 
   // Check for required fields
-  // if (
-  //   !firstName ||
-  //   !lastName ||
-  //   !email ||
-  //   !password ||
-  //   !phone ||
-  //   !dateOfBirth 
+  if (
+    !firstName ||
+    !lastName ||
+    !email ||
+    !password ||
+    !phone ||
+    !dateOfBirth 
     
-  // ) {
-  //   return next(new ErrorHandler("Please fill all the required fields", 404));
-  // }
+  ) {
+    return next(new ErrorHandler("Please fill all the required fields", 404));
+  }
 
   // Check if the user already exists
   const doesUserExist = await User.findOne({ email });
